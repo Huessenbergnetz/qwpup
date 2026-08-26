@@ -1,6 +1,6 @@
-# SPDX-FileCopyrightText: (C) 2026 Matthias Fehring <https://www.huessenbergnetz.de>
+# SPDX-FileCopyrightText: Matthias Fehring <https://www.huessenbergnetz.de>
 #
-# SPDX-License-Identifier: GPL-3.0-or-later
+# SPDX-License-Identifier: CC0-1.0
 
 #.clang-format for cutelystbotan 2026-08-26
 # Tries to be close to Qt coding style
