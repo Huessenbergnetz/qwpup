@@ -1,0 +1,16 @@
+# SPDX-FileCopyrightText: (C) 2026 Matthias Fehring <https://www.huessenbergnetz.de>
+#
+# SPDX-License-Identifier: GPL-3.0-or-later
+
+# See https://pre-commit.com for more information
+# See https://pre-commit.com/hooks.html for more hooks
+repos:
+-   repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v6.0.0
+    hooks:
+    -   id: trailing-whitespace
+    -   id: end-of-file-fixer
+-   repo: https://codeberg.org/fsfe/reuse-tool
+    rev: v6.2.0
+    hooks:
+    -   id: reuse
