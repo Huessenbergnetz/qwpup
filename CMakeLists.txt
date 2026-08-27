@@ -3,6 +3,9 @@
 
 cmake_minimum_required(VERSION 3.20)
 
+cmake_policy(SET CMP0048 NEW)
+cmake_policy(SET CMP0076 NEW)
+
 project(qwpup
     VERSION 0.0.1
     DESCRIPTION "Qt based wrapper for WP CLI to automate WordPress updates with some extras."
@@ -28,6 +31,8 @@ set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
+option(ENABLE_MAINTAINER_CFLAGS "Enable maintainer CFlags" OFF)
+
 set(QWPUP_I18NDIR "${CMAKE_INSTALL_DATADIR}/${PROJECT_NAME}/translations" CACHE PATH "Directory to install translations")
 set(QWPUP_CONFDIR "${CMAKE_INSTALL_SYSCONFDIR}" CACHE PATH "Configuration file directory")
 
@@ -46,7 +51,18 @@ add_compile_definitions(
     QWPUP_VERSION="${PROJECT_VERSION}"
     QWPUP_I18NDIR="${QWPUP_I18N_FULL_DIR}"
     QWPUP_CONFFILE="${QWPUP_CONF_FULL_DIR}/${PROJECT_NAME}.json"
-    $<$<NOT:$<CONFIG:Debug>>:QT_NO_DEBUG_OUTPUT>
 )
+
+if (ENABLE_MAINTAINER_CFLAGS)
+    add_compile_options(
+        -Wall
+        -Wcast-align
+        -Wno-uninitialized
+        -Wempty-body
+        -Wformat-security
+        -Wformat
+        -Winit-self
+    )
+endif (ENABLE_MAINTAINER_CFLAGS)
 
 add_subdirectory(qwpup)
