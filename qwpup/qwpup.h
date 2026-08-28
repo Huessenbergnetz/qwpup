@@ -6,7 +6,7 @@
 #ifndef QWPUP_H
 #define QWPUP_H
 
-#include "errorcodes.h"
+#include "enums.h"
 
 #include <QCoreApplication>
 #include <QDir>

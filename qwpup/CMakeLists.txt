@@ -10,7 +10,7 @@ target_sources(qwpup
         qwpup.cpp
         ../common/utils.h
         ../common/utils.cpp
-        ../common/errorcodes.h
+        ../common/enums.h
 )
 
 target_include_directories(qwpup
