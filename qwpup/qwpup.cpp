@@ -56,11 +56,33 @@ Error QWpUp::start(const QStringList &arguments)
                                    //: Option description in the CLI help
                                    //% "Skip compressing JS and CSS assets."
                                    qtTrId("qwpup_cli_opt_skip_comp"));
+    parser.addOption(skipCompOpt);
 
     QCommandLineOption upWpMajOpt(QStringList({u"m"_s, u"major"_s}),
-                                  //: Option descriptino in the CLI help
-                                  //% "Update WordPress to a new major version instead to just a minor version update."
+                                  //: Option description in the CLI help
+                                  //% "Update WordPress to a new major version. By default only minor version udpates "
+                                  //% "will be performed."
                                   qtTrId("qwpup_cli_opt_up_wp_maj"));
+    parser.addOption(upWpMajOpt);
+
+    QCommandLineOption upPlugsVerOpt(u"plugins-version"_s,
+                                     //: Option description in the CLI help, DO NOT TRANSLATE the terms
+                                     //: major, minor and patch
+                                     //% "Only perform plugin updates for major, minor or patch releases: Default: major."
+                                     qtTrId("qwpup_cli_opt_plug_ver"),
+                                     //: Option value name in the CLI help vor version number part like major, minor
+                                     //% "part"
+                                     qtTrId("qwpup_cli_opt_value_ver_part"),
+                                     u"major"_s);
+    parser.addOption(upPlugsVerOpt);
+
+    QCommandLineOption upThemVerOpt(u"themes-version"_s,
+                                    //: Option description in the CLI help, DO NOT TRANSLATE the terms
+                                    //% "Only perform theme updates for major, minor or patch releases: Default: major."
+                                    qtTrId("qwpup_cli_opt_themes_ver"),
+                                    qtTrId("qwpup_cli_opt_value_ver_part"),
+                                    u"major"_s);
+    parser.addOption(upThemVerOpt);
 
     QCommandLineOption wpCliOpt(u"wp-cli"_s,
                                 //: Option description in the CLI help
@@ -169,6 +191,30 @@ Error QWpUp::start(const QStringList &arguments)
     m_skipCompression = parser.isSet(skipCompOpt);
 
     qDebug() << "Skip compression:" << m_skipCompression;
+
+    m_wpUpMajor = parser.isSet(upWpMajOpt);
+
+    qDebug() << "Update WordPress major version:" << m_wpUpMajor;
+
+    const QString upPlugsVerStr = parser.value(upPlugsVerOpt).toLower();
+    m_plugsUpVersion            = Utils::versionPartFromString(upPlugsVerStr);
+
+    if (m_plugsUpVersion == VersionPart::Invalid) {
+        //: Error message, DO NOT TRANSLATE the terms major, minor and patch
+        //% "Invalid version part identifier. Only major, minor or patch are allowed."
+        qCritical().noquote() << qtTrId("qwpup_err_wp_invalid_version_part");
+    }
+
+    qDebug() << "Update plugins version:" << upPlugsVerStr;
+
+    const QString upThemesVerStr = parser.value(upThemVerOpt).toLower();
+    m_themesUpVersion            = Utils::versionPartFromString(upThemesVerStr);
+
+    if (m_themesUpVersion == VersionPart::Invalid) {
+        qCritical().noquote() << qtTrId("qwpup_err_wp_invalid_version_part");
+    }
+
+    qDebug() << "Update themes version:" << upThemesVerStr;
 
     QTimer::singleShot(0, this, &QWpUp::doStart);
 

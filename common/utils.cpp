@@ -55,3 +55,16 @@ void Utils::setLogLevel(QtMsgType type)
         break;
     }
 }
+
+VersionPart Utils::versionPartFromString(const QString &str)
+{
+    if (str.compare("major"_L1) == 0) {
+        return VersionPart::Major;
+    } else if (str.compare("minor"_L1) == 0) {
+        return VersionPart::Minor;
+    } else if (str.compare("patch"_L1) == 0) {
+        return VersionPart::Patch;
+    }
+
+    return VersionPart::Invalid;
+}

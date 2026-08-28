@@ -18,6 +18,32 @@
         <extracomment>Option value name in the CLI help for the log level</extracomment>
         <translation type="unfinished"></translation>
     </message>
+    <message id="qwpup_cli_opt_skip_comp">
+        <source>Skip compressing JS and CSS assets.</source>
+        <extracomment>Option description in the CLI help</extracomment>
+        <translation type="unfinished"></translation>
+    </message>
+    <message id="qwpup_cli_opt_up_wp_maj">
+        <source>Update WordPress to a new major version. By default only minor version udpates will be performed.</source>
+        <oldsource>Update WordPress to a new major version instead to just a minor version update.</oldsource>
+        <extracomment>Option description in the CLI help</extracomment>
+        <translation type="unfinished"></translation>
+    </message>
+    <message id="qwpup_cli_opt_plug_ver">
+        <source>Only perform plugin updates for major, minor or patch releases: Default: major.</source>
+        <extracomment>Option description in the CLI help, DO NOT TRANSLATE the terms major, minor and patch</extracomment>
+        <translation type="unfinished"></translation>
+    </message>
+    <message id="qwpup_cli_opt_value_ver_part">
+        <source>part</source>
+        <extracomment>Option value name in the CLI help vor version number part like major, minor</extracomment>
+        <translation type="unfinished"></translation>
+    </message>
+    <message id="qwpup_cli_opt_themes_ver">
+        <source>Only perform theme updates for major, minor or patch releases: Default: major.</source>
+        <extracomment>Option description in the CLI help, DO NOT TRANSLATE the terms</extracomment>
+        <translation type="unfinished"></translation>
+    </message>
     <message id="qwpup_cli_opt_wp_cli">
         <source>Path to the WP CLI executable. By default, this will be searched in the PATH.</source>
         <extracomment>Option description in the CLI help</extracomment>
@@ -73,6 +99,11 @@
         <source>Can not find wp-config.php configuration file. We seem not to be inside the root directory of a WordPress installation. Either run this command inside a WordPress root directory or use “%1” to specify the path to a WordPress root directory.</source>
         <oldsource>Can not find wp-config.php configuration file. We seem not to be inside the root directory of a WordPress installation. Either run this command inside a WordPress root directory or use %1 to specify the path to a WordPress root directory.</oldsource>
         <extracomment>Error message, %1 will be replaced with a CLI option name like --wp-dir</extracomment>
+        <translation type="unfinished"></translation>
+    </message>
+    <message id="qwpup_err_wp_invalid_version_part">
+        <source>Invalid version part identifier. Only major, minor or patch are allowed.</source>
+        <extracomment>Error message, DO NOT TRANSLATE the terms major, minor and patch</extracomment>
         <translation type="unfinished"></translation>
     </message>
 </context>

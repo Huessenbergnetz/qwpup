@@ -6,6 +6,8 @@
 #ifndef QWPUP_UTILS_H
 #define QWPUP_UTILS_H
 
+#include "enums.h"
+
 #include <QtLogging>
 
 namespace Utils {
@@ -18,6 +20,9 @@ inline void setLogLevel(const QString &level)
 {
     setLogLevel(logLevel(level));
 }
+
+VersionPart versionPartFromString(const QString &str);
+
 } // namespace Utils
 
 #endif // QWPUP_UTILS_H

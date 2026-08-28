@@ -27,6 +27,8 @@ private:
 
     QString m_wp;
     QDir m_wpDir;
+    VersionPart m_plugsUpVersion{VersionPart::Major};
+    VersionPart m_themesUpVersion{VersionPart::Major};
     bool m_skipCompression{false};
     bool m_wpUpMajor{false};
 };
