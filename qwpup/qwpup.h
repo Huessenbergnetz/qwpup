@@ -27,6 +27,8 @@ private:
 
     QString m_wp;
     QDir m_wpDir;
+    bool m_skipCompression{false};
+    bool m_wpUpMajor{false};
 };
 
 #endif // QWPUP_H

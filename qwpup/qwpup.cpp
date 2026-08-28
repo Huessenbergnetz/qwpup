@@ -52,6 +52,16 @@ Error QWpUp::start(const QStringList &arguments)
                                    defLl);
     parser.addOption(logLevelOpt);
 
+    QCommandLineOption skipCompOpt(QStringList({u"s"_s, u"skip-compression"_s}),
+                                   //: Option description in the CLI help
+                                   //% "Skip compressing JS and CSS assets."
+                                   qtTrId("qwpup_cli_opt_skip_comp"));
+
+    QCommandLineOption upWpMajOpt(QStringList({u"m"_s, u"major"_s}),
+                                  //: Option descriptino in the CLI help
+                                  //% "Update WordPress to a new major version instead to just a minor version update."
+                                  qtTrId("qwpup_cli_opt_up_wp_maj"));
+
     QCommandLineOption wpCliOpt(u"wp-cli"_s,
                                 //: Option description in the CLI help
                                 //% "Path to the WP CLI executable. By default, this will be searched in the PATH."
@@ -155,6 +165,10 @@ Error QWpUp::start(const QStringList &arguments)
     }
 
     qDebug() << "WordPress directory:" << m_wpDir.absolutePath();
+
+    m_skipCompression = parser.isSet(skipCompOpt);
+
+    qDebug() << "Skip compression:" << m_skipCompression;
 
     QTimer::singleShot(0, this, &QWpUp::doStart);
 
