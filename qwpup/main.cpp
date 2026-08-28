@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: GPL-3.0-or-later
  */
 
-#include "errorcodes.h"
+#include "enums.h"
 #include "qwpup.h"
 
 #include <QDebug>
