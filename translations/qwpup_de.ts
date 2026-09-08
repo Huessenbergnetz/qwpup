@@ -124,6 +124,10 @@
         <source>Unexpected JSON type. Aborting.</source>
         <translation type="unfinished"></translation>
     </message>
+    <message id="qpwup_info_no_core_ups_avail">
+        <source>No core updates available.</source>
+        <translation type="unfinished"></translation>
+    </message>
     <message id="qwpup_inf_min_core_ver_avail">
         <source>New minor core version available: %1</source>
         <translation type="unfinished"></translation>
@@ -164,12 +168,47 @@
         <source>Checking for plugin updates.</source>
         <translation type="unfinished"></translation>
     </message>
+    <message id="qwpup_info_no_plug_ups_avail">
+        <source>No plugin updates available.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message id="qwpup_info_updates_none">
+        <source>none</source>
+        <extracomment>Used when no updates for e.g. plugins and themes are available, in a form like &quot;Available plugin updates: none&quot;</extracomment>
+        <translation type="unfinished"></translation>
+    </message>
+    <message id="qwpup_dbg_avail_plug_up">
+        <source>Available plugin update: %1 %2 =&gt; %3</source>
+        <extracomment>%1 will be replaced by the plugin name, %2 by the current version, %3 by the udpate version</extracomment>
+        <translation type="unfinished"></translation>
+    </message>
+    <message id="qwpup_info_avail_plug_ups">
+        <source>Available plugin updates: %1.</source>
+        <extracomment>%1 will be replaced by a comma separated list of plugin updates or &quot;none&quot;.</extracomment>
+        <translation type="unfinished"></translation>
+    </message>
+    <message id="qwpup_dbg_skipped_plug_up">
+        <source>Skipped plugin update: %1 %2 =&gt; %3</source>
+        <extracomment>%1 will be replaced by the plugin name, %2 by the current version, %3 by the udpate version</extracomment>
+        <translation type="unfinished"></translation>
+    </message>
+    <message id="qwpup_info_skipp_plug_ups">
+        <source>Skipped plugin updates: %1.</source>
+        <extracomment>%1 will be replaced by a comma separated list of plugin updates.</extracomment>
+        <translation type="unfinished"></translation>
+    </message>
+    <message id="qwpup_info_check_theme_updates">
+        <source>Checking for theme updates.</source>
+        <translation type="unfinished"></translation>
+    </message>
     <message id="qwpup_question_answers_yesnocancel">
         <source>(Y)es/(N)o/(C)ancel</source>
+        <extracomment>Answer options to a confirmation question</extracomment>
         <translation type="unfinished"></translation>
     </message>
     <message id="qwpup_question_answers_yesno">
         <source>(Y)es/(N)o</source>
+        <extracomment>Answer options to a confirmation question</extracomment>
         <translation type="unfinished"></translation>
     </message>
     <message id="qwpup_quest_answer_yes_short">

@@ -12,6 +12,7 @@
 
 #include <QCoreApplication>
 #include <QDir>
+#include <QJsonArray>
 #include <QProcessEnvironment>
 
 class QProcess;
@@ -32,6 +33,8 @@ private slots:
     void listCoreVersions();
     void updateCore();
     void checkPluginUpdates();
+    void updatePlugins();
+    void checkThemeUpdates();
 
 private:
     void handleError(const QString &msg, Error exitCode);
@@ -43,6 +46,8 @@ private:
     QString m_currentCoreVersion;
     QString m_availMajCoreVersion;
     QString m_availMinCoreVersoin;
+    QJsonArray m_pluginUpdates;
+    QJsonArray m_skippedPluginUpdates;
     QDir m_wpDir;
     std::unique_ptr<QTemporaryDir> m_tempDir;
     QProcessEnvironment m_env;
