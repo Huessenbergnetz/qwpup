@@ -36,6 +36,7 @@ private slots:
 private:
     void handleError(const QString &msg, Error exitCode);
     QProcess *wpProcess(const QStringList &arguments);
+    Answer askYesNoCancel(const QString &question);
     Answer askYesNo(const QString &question);
 
     QString m_wpPath;

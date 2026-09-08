@@ -30,6 +30,11 @@ QWpUp::QWpUp(QCoreApplication *parent)
 {
 }
 
+/**
+ * Parse command line arguments and set options.
+ *
+ * When parsing finished successfully, call doStart().
+ */
 Error QWpUp::start(const QStringList &arguments)
 {
     QCommandLineParser parser;
@@ -329,7 +334,7 @@ void QWpUp::listCoreVersions()
                 return;
             }
 
-            auto array = json.array();
+            const auto array = json.array();
 
             if (array.isEmpty()) {
                 qInfo() << "No Core updates available.";
@@ -379,7 +384,7 @@ void QWpUp::updateCore()
         //: %1 will be replaced by the current version number, %2 by the
         //: target version
         //% "Do you want to update WordPress core from version %1 to %2?"
-        if (askYesNo(qtTrId("qwpup_ask_update_core").arg(m_currentCoreVersion, targetVersion)) != Answer::Yes) {
+        if (askYesNoCancel(qtTrId("qwpup_ask_update_core").arg(m_currentCoreVersion, targetVersion)) != Answer::Yes) {
             QTimer::singleShot(0, this, &QWpUp::checkPluginUpdates);
             return;
         }
@@ -439,15 +444,16 @@ QProcess *QWpUp::wpProcess(const QStringList &arguments)
     return proc;
 }
 
-Answer QWpUp::askYesNo(const QString &question)
+Answer QWpUp::askYesNoCancel(const QString &question)
 {
     QTextStream out(stdout);
     QTextStream in(stdin);
 
     QString line;
 
+    //: Answer options to a confirmation question
     //% "(Y)es/(N)o/(C)ancel"
-    const QString _quest = question + " ["_L1 + qtTrId("qwpup_question_answers_full") + "]: "_L1;
+    const QString _quest = question + " ["_L1 + qtTrId("qwpup_question_answers_yesnocancel") + "]: "_L1;
     //: Answer to a confirmation question, abbreviation for "Yes"
     //% "Y"
     const QString y = qtTrId("qwpup_quest_answer_yes_short");
@@ -469,13 +475,12 @@ Answer QWpUp::askYesNo(const QString &question)
 
     out << _quest << Qt::flush;
     while (in.readLineInto(&line)) {
-        const auto trimmedLine = line.trimmed();
-        if (trimmedLine.compare(y, Qt::CaseInsensitive) == 0 || trimmedLine.compare(yes, Qt::CaseInsensitive) == 0) {
+        const auto tl = line.trimmed();
+        if (tl.compare(y, Qt::CaseInsensitive) == 0 || tl.compare(yes, Qt::CaseInsensitive) == 0) {
             return Answer::Yes;
-        } else if (trimmedLine.compare(n, Qt::CaseInsensitive) == 0 || trimmedLine.compare(no, Qt::CaseInsensitive) == 0) {
+        } else if (tl.compare(n, Qt::CaseInsensitive) == 0 || tl.compare(no, Qt::CaseInsensitive) == 0) {
             return Answer::No;
-        } else if (trimmedLine.compare(c, Qt::CaseInsensitive) == 0 ||
-                   trimmedLine.compare(cancel, Qt::CaseInsensitive) == 0) {
+        } else if (tl.compare(c, Qt::CaseInsensitive) == 0 || tl.compare(cancel, Qt::CaseInsensitive) == 0) {
             QCoreApplication::exit();
             return Answer::Cancel;
         }
@@ -484,6 +489,35 @@ Answer QWpUp::askYesNo(const QString &question)
 
     QCoreApplication::exit();
     return Answer::Cancel;
+}
+
+Answer QWpUp::askYesNo(const QString &question)
+{
+    QTextStream out(stdout);
+    QTextStream in(stdin);
+
+    QString line;
+
+    //: Answer options to a confirmation question
+    //% "(Y)es/(N)o"
+    const QString _quest = question + " ["_L1 + qtTrId("qwpup_question_answers_yesno") + "]: "_L1;
+    const QString y      = qtTrId("qwpup_quest_answer_yes_short");
+    const QString yes    = qtTrId("qwpup_quest_answer_yes");
+    const QString n      = qtTrId("qwpup_quest_answer_no_short");
+    const QString no     = qtTrId("qwpup_quest_answer_no");
+
+    out << _quest << Qt::flush;
+    while (in.readLineInto(&line)) {
+        const auto tl = line.trimmed();
+        if (tl.compare(y, Qt::CaseInsensitive) == 0 || tl.compare(yes, Qt::CaseInsensitive) == 0) {
+            return Answer::Yes;
+        } else if (tl.compare(n, Qt::CaseInsensitive) == 0 || tl.compare(no, Qt::CaseInsensitive) == 0) {
+            return Answer::No;
+        }
+        out << _quest << Qt::flush;
+    }
+
+    return Answer::No;
 }
 
 #include "moc_qwpup.cpp"

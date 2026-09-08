@@ -164,8 +164,12 @@
         <source>Checking for plugin updates.</source>
         <translation type="unfinished"></translation>
     </message>
-    <message id="qwpup_question_answers_full">
+    <message id="qwpup_question_answers_yesnocancel">
         <source>(Y)es/(N)o/(C)ancel</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message id="qwpup_question_answers_yesno">
+        <source>(Y)es/(N)o</source>
         <translation type="unfinished"></translation>
     </message>
     <message id="qwpup_quest_answer_yes_short">
