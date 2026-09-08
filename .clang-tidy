@@ -3,7 +3,7 @@
 # SPDX-License-Identifier: CC0-1.0
 
 ---
-Checks:          '-*,clang-*,bugprone-*,-bugprone-suspicious-include,-bugprone-easily-swappable-parameters,modernize-*,-modernize-use-trailing-return-type,-modernize-pass-by-value,cppcoreguidelines-*,google-explicit-constructor,modernize-*,-modernize-use-trailing-return-type,performance-*,-performance-enum-size'
+Checks:          '-*,clang-*,bugprone-*,-bugprone-suspicious-include,-bugprone-easily-swappable-parameters,-bugprone-unused-return-value,modernize-*,-modernize-use-trailing-return-type,-modernize-pass-by-value,cppcoreguidelines-*,google-explicit-constructor,performance-*,-performance-enum-size'
 WarningsAsErrors: ''
 HeaderFileExtensions:
   - ''
