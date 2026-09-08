@@ -10,4 +10,6 @@ enum class Error : int { None = 0, Config = 1, File = 2, Internal = 3, Security 
 
 enum class VersionPart : int { Invalid, Major, Minor, Patch };
 
+enum class Answer : int { Yes, No, Cancel };
+
 #endif // QWPUP_ENUMS_H

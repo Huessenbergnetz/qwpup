@@ -23,6 +23,11 @@
         <extracomment>Option description in the CLI help</extracomment>
         <translation type="unfinished"></translation>
     </message>
+    <message id="qwpup_cli_opt_yes">
+        <source>Say yes to everything.</source>
+        <extracomment>Option description in the CLI help</extracomment>
+        <translation type="unfinished"></translation>
+    </message>
     <message id="qwpup_cli_opt_up_wp_maj">
         <source>Update WordPress to a new major version. By default only minor version udpates will be performed.</source>
         <oldsource>Update WordPress to a new major version instead to just a minor version update.</oldsource>
@@ -75,6 +80,10 @@
         <oldsource>Do not run this command as super user (root)</oldsource>
         <translation type="unfinished"></translation>
     </message>
+    <message id="qwpup_err_wp_config_owner_mismatch">
+        <source>Current user it not the owner of the wp-config.php file. Please run the command as owner of the WordPress files.</source>
+        <translation type="unfinished"></translation>
+    </message>
     <message id="qwpup_err_wp_exe_path_wrong">
         <source>No file found at “%1“.</source>
         <oldsource>No file found at “%1“.
@@ -86,6 +95,69 @@
         <source>Can not find WP CLI executable. Check your PATH or explicitely set the path to the executable with “%1”.</source>
         <oldsource>Can not find WP CLI executable. Check your PATH or explicitely set the path to the executable with %1</oldsource>
         <extracomment>Error message, %1 will be replaced with a CLI option name like --wp-cli</extracomment>
+        <translation type="unfinished"></translation>
+    </message>
+    <message id="qwpup_err_invalid_tmp_dir">
+        <source>Failed to create temporary directory: %1</source>
+        <extracomment>Error message, %1 will be replaced by the error message</extracomment>
+        <translation type="unfinished"></translation>
+    </message>
+    <message id="qwpup_inf_cur_wp_core_version">
+        <source>Current WordPress core version: %1</source>
+        <extracomment>Info message, %1 will be replaced by the version string like 6.8.3</extracomment>
+        <translation type="unfinished"></translation>
+    </message>
+    <message id="qwpup_err_wp_version_info_failed">
+        <source>Failed to get version information.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message id="qwpup_info_check_core_updates">
+        <source>Checking for core updates.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message id="qwpup_err_json_parse_failed">
+        <source>Failed to parse JSON data: %1</source>
+        <extracomment>Error message, %1 will be replaced by the error message from the JSON parser.</extracomment>
+        <translation type="unfinished"></translation>
+    </message>
+    <message id="qwpup_err_json_unexpected_type">
+        <source>Unexpected JSON type. Aborting.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message id="qwpup_inf_min_core_ver_avail">
+        <source>New minor core version available: %1</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message id="qwpup_inf_maj_core_ver_avail">
+        <source>New major core version available: %1</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message id="qwpup_info_skip_core_update">
+        <source>Skipping core update.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message id="qwpup_err_ep_core_up_check_failed">
+        <source>Failed to check for core updates.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message id="qwpup_ask_update_core">
+        <source>Do you want to update WordPress core from version %1 to %2?</source>
+        <extracomment>%1 will be replaced by the current version number, %2 by the target version</extracomment>
+        <translation type="unfinished"></translation>
+    </message>
+    <message id="qwpup_info_update_core">
+        <source>Updating WordPress core from version %1 to version %2.</source>
+        <extracomment>Info message, %1 will be replaced by the current WordPress core version, %2 will be replaced by the newer version</extracomment>
+        <translation type="unfinished"></translation>
+    </message>
+    <message id="qwpup_infi_update_core_success">
+        <source>Successfully updated WordPres core from version %1 to version %2.</source>
+        <oldsource>Successfully updated WordPres core.</oldsource>
+        <extracomment>Info message, %1 will be replaced by the previous WordPress core version, %2 will be replaced by the now updated version</extracomment>
+        <translation type="unfinished"></translation>
+    </message>
+    <message id="qwpup_info_check_plugin_updates">
+        <source>Checking for plugin updates.</source>
         <translation type="unfinished"></translation>
     </message>
     <message id="qwpup_err_wp_dir_not_exists">
