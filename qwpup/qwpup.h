@@ -13,7 +13,9 @@
 #include <QCoreApplication>
 #include <QDir>
 #include <QJsonArray>
+#include <QJsonObject>
 #include <QProcessEnvironment>
+#include <QQueue>
 
 class QProcess;
 class QTemporaryDir;
@@ -33,7 +35,7 @@ private slots:
     void listCoreVersions();
     void updateCore();
     void checkPluginUpdates();
-    void updatePlugins();
+    void updatePlugin();
     void checkThemeUpdates();
 
 private:
@@ -41,13 +43,17 @@ private:
     QProcess *wpProcess(const QStringList &arguments);
     Answer askYesNoCancel(const QString &question);
     Answer askYesNo(const QString &question);
+    [[nodiscard]] QStringList getAssets(const QString &basePath) const;
+    [[nodiscard]] QStringList getPluginAssets(const QString &pluginName) const;
 
     QString m_wpPath;
     QString m_currentCoreVersion;
     QString m_availMajCoreVersion;
     QString m_availMinCoreVersoin;
-    QJsonArray m_pluginUpdates;
-    QJsonArray m_skippedPluginUpdates;
+    QQueue<QJsonObject> m_pluginsToUpdate;
+    QJsonArray m_skippedPlugins;
+    QJsonArray m_updatedPlugins;
+    QJsonArray m_failedPlugins;
     QDir m_wpDir;
     std::unique_ptr<QTemporaryDir> m_tempDir;
     QProcessEnvironment m_env;

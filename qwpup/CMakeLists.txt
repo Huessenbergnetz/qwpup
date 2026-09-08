@@ -18,6 +18,12 @@ target_include_directories(qwpup
         ${CMAKE_SOURCE_DIR}/common
 )
 
+target_link_libraries(qwpup
+    PRIVATE
+        Qt6::Concurrent
+        PkgConfig::Brotli
+)
+
 install(TARGETS qwpup DESTINATION ${CMAKE_INSTALL_BINDIR})
 
 set(qwpup_TS_FILES

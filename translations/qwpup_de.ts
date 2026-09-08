@@ -197,6 +197,68 @@
         <extracomment>%1 will be replaced by a comma separated list of plugin updates.</extracomment>
         <translation type="unfinished"></translation>
     </message>
+    <message id="qwpup_warn_failed_open_asset">
+        <source>Failed to open %1 for reading: %2</source>
+        <extracomment>%1 will bereplaced by the absolute file path, %2 the error message</extracomment>
+        <translation type="unfinished"></translation>
+    </message>
+    <message id="qwpup_warn_failed_read_asset_or_empty">
+        <source>Failed to read file or file is empty: %1</source>
+        <extracomment>%1 will bereplaced by the absolute file path</extracomment>
+        <translation type="unfinished"></translation>
+    </message>
+    <message id="qwpup_warn_comp_brotli_too_large">
+        <source>Required Brotli output buffer too large to compress input file of size %1: %2</source>
+        <extracomment>%1 will be replaced by the size, %2 by the full path to the asset file</extracomment>
+        <translation type="unfinished"></translation>
+    </message>
+    <message id="qwpup_warn_comp_brotli_fail">
+        <source>Failed to compress asset with Brotli: %1</source>
+        <extracomment>%1 will be replaced by the full file path</extracomment>
+        <translation type="unfinished"></translation>
+    </message>
+    <message id="qwpup_warn_comp_brotli_open_out">
+        <source>Failed to open %1 for writing: %2</source>
+        <extracomment>%1 will be replaced by the file path, %2 by the error message</extracomment>
+        <translation type="unfinished"></translation>
+    </message>
+    <message id="qwpup_warn_comp_brotli_write_out">
+        <source>Failed to write compressed data to %1: %2</source>
+        <extracomment>%1 will be replaced by the file path, %2 by the error message</extracomment>
+        <translation type="unfinished"></translation>
+    </message>
+    <message id="qwpup_ask_update_plugin">
+        <source>Do you want to update plugin %1 from version %2 to %3?</source>
+        <extracomment>%1 will be replaced by the plugin’s name, %2 by the current version and %3 by the update version</extracomment>
+        <translation type="unfinished"></translation>
+    </message>
+    <message id="qwpup_info_update_plugin">
+        <source>Updating plugin %1 from version %2 to %3.</source>
+        <extracomment>%1 will be replaced by the plugin’s name, %2 by the current version and %3 by the update version</extracomment>
+        <translation type="unfinished"></translation>
+    </message>
+    <message id="qwpup_info_plug_up_success">
+        <source>Successfully updated plugin %1 from version %2 to %3.</source>
+        <oldsource>Successfully updated plugin %1 from version %2 to %3.
+</oldsource>
+        <extracomment>%1 will be replaced by the plugin’s name, %2 by the current version and %3 by the update version</extracomment>
+        <translation type="unfinished"></translation>
+    </message>
+    <message id="qwpup_info_plug_compr_assets">
+        <source>Start compressing assets for plugin %1.</source>
+        <extracomment>%1 will be replaced by the plugin name</extracomment>
+        <translation type="unfinished"></translation>
+    </message>
+    <message id="qwpup_info_plug_compr_assets_finished">
+        <source>Finished compressing assets for plugin %1.</source>
+        <extracomment>%1 will be replaced by the plugin name</extracomment>
+        <translation type="unfinished"></translation>
+    </message>
+    <message id="qwpup_err_plug_up_failed">
+        <source>Failed to update plugin %1 from version %2 to %3.</source>
+        <extracomment>%1 will be replaced by the plugin’s name, %2 by the current version and %3 by the update version</extracomment>
+        <translation type="unfinished"></translation>
+    </message>
     <message id="qwpup_info_check_theme_updates">
         <source>Checking for theme updates.</source>
         <translation type="unfinished"></translation>

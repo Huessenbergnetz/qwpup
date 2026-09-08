@@ -18,7 +18,9 @@ include(GNUInstallDirs)
 set(QT_VERSION_MAJOR 6)
 set(QT_MINIMUM_VERSION 6.7)
 
-find_package(Qt${QT_VERSION_MAJOR} ${QT_MINIMUM_VERSION} COMPONENTS Core LinguistTools REQUIRED)
+find_package(Qt${QT_VERSION_MAJOR} ${QT_MINIMUM_VERSION} COMPONENTS Core LinguistTools Concurrent REQUIRED)
+find_package(PkgConfig REQUIRED)
+pkg_search_module(Brotli REQUIRED IMPORTED_TARGET libbrotlienc)
 
 if (Qt6_VERSION VERSION_LESS "6.10.0")
     set(QWPUP_LRELEASE_OPTIONS OPTIONS -idbased)

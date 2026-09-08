@@ -7,12 +7,15 @@
 
 #include "utils.h"
 
+#include <brotli/encode.h>
+
 #include <QCommandLineOption>
 #include <QCommandLineParser>
+#include <QDirIterator>
 #include <QFile>
 #include <QFileInfo>
+#include <QFutureWatcher>
 #include <QJsonDocument>
-#include <QJsonObject>
 #include <QJsonValue>
 #include <QLocale>
 #include <QLoggingCategory>
@@ -22,6 +25,7 @@
 #include <QTextStream>
 #include <QTimer>
 #include <QVersionNumber>
+#include <QtConcurrentMap>
 
 using namespace Qt::Literals::StringLiterals;
 
@@ -300,7 +304,7 @@ void QWpUp::showVersionInfo()
     connect(wp, &QProcess::finished, this, [this, wp](int exitCode, QProcess::ExitStatus exitStatus) {
         wp->deleteLater();
         if (exitStatus == QProcess::NormalExit && exitCode == 0) {
-            qDebug().noquote() << wp->readAllStandardOutput();
+            qDebug().noquote() << wp->readAllStandardOutput().trimmed();
             listCoreVersions();
         } else {
             qCritical().noquote() << wp->readAllStandardError().trimmed();
@@ -452,6 +456,8 @@ void QWpUp::checkPluginUpdates()
                 return;
             }
 
+            QList<QJsonObject> pluginsWithUpdates;
+
             for (const auto &v : array) {
                 const auto o             = v.toObject();
                 const auto version       = QVersionNumber::fromString(o.value("version"_L1).toString()).normalized();
@@ -461,18 +467,21 @@ void QWpUp::checkPluginUpdates()
                 // NOLINTNEXTLINE(bugprone-branch-clone)
                 if (m_plugsUpVersion == VersionPart::Patch) {
                     if (commonPrefix.segmentCount() >= 2) {
-                        m_pluginUpdates.append(v);
+                        pluginsWithUpdates.append(o); // clazy:exclude=reserve-candidates
+                        m_pluginsToUpdate.enqueue(o);
                     } else {
-                        m_skippedPluginUpdates.append(v);
+                        m_skippedPlugins.append(v);
                     }
                 } else if (m_plugsUpVersion == VersionPart::Minor) {
                     if (commonPrefix.segmentCount() >= 1) {
-                        m_pluginUpdates.append(v);
+                        pluginsWithUpdates.append(o); // clazy:exclude=reserve-candidates
+                        m_pluginsToUpdate.enqueue(o);
                     } else {
-                        m_skippedPluginUpdates.append(v);
+                        m_skippedPlugins.append(v);
                     }
                 } else {
-                    m_pluginUpdates.append(v);
+                    pluginsWithUpdates.append(o); // clazy:exclude=reserve-candidates
+                    m_pluginsToUpdate.enqueue(o);
                 }
             }
 
@@ -483,9 +492,8 @@ void QWpUp::checkPluginUpdates()
                 //% "none"
                 const QString none = qtTrId("qwpup_info_updates_none");
 
-                if (!m_pluginUpdates.empty()) {
-                    for (const auto &v : std::as_const(m_pluginUpdates)) {
-                        const auto o             = v.toObject();
+                if (!pluginsWithUpdates.empty()) {
+                    for (const auto &o : std::as_const(pluginsWithUpdates)) {
                         const auto name          = o.value("name"_L1).toString();
                         const auto version       = o.value("version"_L1).toString();
                         const auto updateVersion = o.value("update_version"_L1).toString();
@@ -499,8 +507,8 @@ void QWpUp::checkPluginUpdates()
                     qDebug().noquote() << qtTrId("qwpup_info_avail_plug_ups").arg(none);
                 }
 
-                if (!m_skippedPluginUpdates.empty()) {
-                    for (const auto &v : std::as_const(m_skippedPluginUpdates)) {
+                if (!m_skippedPlugins.empty()) {
+                    for (const auto &v : std::as_const(m_skippedPlugins)) {
                         const auto o             = v.toObject();
                         const auto name          = o.value("name"_L1).toString();
                         const auto version       = o.value("version"_L1).toString();
@@ -520,21 +528,21 @@ void QWpUp::checkPluginUpdates()
 
                 const QString none = qtTrId("qwpup_info_updates_none");
 
-                if (!m_pluginUpdates.empty()) {
+                if (!pluginsWithUpdates.empty()) {
                     QStringList availUpdates;
-                    availUpdates.reserve(m_pluginUpdates.size());
-                    for (const auto &v : std::as_const(m_pluginUpdates)) {
-                        availUpdates << v.toObject().value("name"_L1).toString();
+                    availUpdates.reserve(pluginsWithUpdates.size());
+                    for (const auto &o : std::as_const(pluginsWithUpdates)) {
+                        availUpdates << o.value("name"_L1).toString();
                     }
                     qInfo().noquote() << qtTrId("qwpup_info_avail_plug_ups").arg(locale.createSeparatedList(availUpdates));
                 } else {
                     qInfo().noquote() << qtTrId("qwpup_info_avail_plug_ups").arg(none);
                 }
 
-                if (!m_skippedPluginUpdates.empty()) {
+                if (!m_skippedPlugins.empty()) {
                     QStringList skippedUpdates;
-                    skippedUpdates.reserve(m_skippedPluginUpdates.size());
-                    for (const auto &v : std::as_const(m_skippedPluginUpdates)) {
+                    skippedUpdates.reserve(m_skippedPlugins.size());
+                    for (const auto &v : std::as_const(m_skippedPlugins)) {
                         skippedUpdates << v.toObject().value("name"_L1).toString();
                     }
                     qInfo().noquote() << qtTrId("qwpup_info_skipp_plug_ups").arg(locale.createSeparatedList(skippedUpdates));
@@ -543,19 +551,178 @@ void QWpUp::checkPluginUpdates()
                 }
             }
 
-            if (m_pluginUpdates.isEmpty()) {
+            if (m_pluginsToUpdate.isEmpty()) {
                 QTimer::singleShot(0, this, &QWpUp::checkThemeUpdates);
             } else {
-                QTimer::singleShot(0, this, &QWpUp::updatePlugins);
+                QTimer::singleShot(0, this, &QWpUp::updatePlugin);
             }
         }
     });
     wp->start();
 }
 
-void QWpUp::updatePlugins()
+QString compressAsset(const QString &asset)
 {
-    QCoreApplication::exit();
+    qDebug().noquote() << "Compressing" << asset << Qt::flush;
+    QFile input(asset);
+    if (!input.open(QIODeviceBase::ReadOnly)) {
+        //: %1 will bereplaced by the absolute file path, %2 the error message
+        //% "Failed to open %1 for reading: %2"
+        qWarning().noquote() << qtTrId("qwpup_warn_failed_open_asset").arg(asset, input.errorString());
+        return {};
+    }
+
+    const QByteArray data = input.readAll();
+    if (data.isEmpty()) {
+        //: %1 will bereplaced by the absolute file path
+        //% "Failed to read file or file is empty: %1"
+        qWarning().noquote() << qtTrId("qwpup_warn_failed_read_asset_or_empty").arg(asset);
+        return {};
+    }
+
+    input.close();
+
+    auto outSize = BrotliEncoderMaxCompressedSize(data.size());
+    if (outSize == 0) {
+        //: %1 will be replaced by the size, %2 by the full path to the asset file
+        //% "Required Brotli output buffer too large to compress input file of size %1: %2"
+        qWarning().noquote() << qtTrId("qwpup_warn_comp_brotli_too_large").arg(QString::number(data.size()), asset);
+        return {};
+    }
+
+    QByteArray outData{static_cast<qsizetype>(outSize), Qt::Uninitialized};
+
+    // NOLINTBEGIN(cppcoreguidelines-pro-type-reinterpret-cast)
+    const auto in = reinterpret_cast<const uint8_t *>(data.constData());
+    auto out      = reinterpret_cast<uint8_t *>(outData.data());
+    // NOLINTEND(cppcoreguidelines-pro-type-reinterpret-cast)
+
+    const BROTLI_BOOL status = BrotliEncoderCompress(
+        BROTLI_DEFAULT_QUALITY, BROTLI_DEFAULT_WINDOW, BROTLI_MODE_TEXT, data.size(), in, &outSize, out);
+
+    if (status != BROTLI_TRUE) {
+        //: %1 will be replaced by the full file path
+        //% "Failed to compress asset with Brotli: %1"
+        qWarning().noquote() << qtTrId("qwpup_warn_comp_brotli_fail").arg(asset);
+        return {};
+    }
+
+    outData.resize(static_cast<qsizetype>(outSize));
+
+    QFile output{asset + u".br"};
+    if (!output.open(QIODeviceBase::WriteOnly)) {
+        //: %1 will be replaced by the file path, %2 by the error message
+        //% "Failed to open %1 for writing: %2"
+        qWarning().noquote() << qtTrId("qwpup_warn_comp_brotli_open_out").arg(output.fileName(), output.errorString());
+        if (output.exists()) {
+            output.remove();
+        }
+        return {};
+    }
+
+    if (output.write(outData) < 0) {
+        //: %1 will be replaced by the file path, %2 by the error message
+        //% "Failed to write compressed data to %1: %2"
+        qWarning().noquote() << qtTrId("qwpup_warn_comp_brotli_write_out").arg(output.fileName(), output.errorString());
+        if (output.exists()) {
+            output.remove();
+        }
+        return {};
+    }
+
+    return output.fileName();
+}
+
+void QWpUp::updatePlugin()
+{
+    if (m_pluginsToUpdate.empty()) {
+        QTimer::singleShot(0, this, &QWpUp::checkThemeUpdates);
+        return;
+    }
+
+    const QJsonObject o      = m_pluginsToUpdate.dequeue();
+    const auto name          = o.value("name"_L1).toString();
+    const auto version       = o.value("version"_L1).toString();
+    const auto updateVersion = o.value("update_version"_L1).toString();
+
+    if (!m_sayYes) {
+        //: %1 will be replaced by the plugin’s name, %2 by the current version
+        //: and %3 by the update version
+        //% "Do you want to update plugin %1 from version %2 to %3?"
+        if (askYesNo(qtTrId("qwpup_ask_update_plugin").arg(name, version, updateVersion)) != Answer::Yes) {
+            m_skippedPlugins.append(o);
+            QTimer::singleShot(0, this, &QWpUp::updatePlugin);
+            return;
+        }
+    }
+
+    //: %1 will be replaced by the plugin’s name, %2 by the current version
+    //: and %3 by the update version
+    //% "Updating plugin %1 from version %2 to %3."
+    qInfo().noquote() << qtTrId("qwpup_info_update_plugin").arg(name, version, updateVersion);
+
+    auto wp = wpProcess({u"plugin"_s, u"update"_s, name, u"--format=json"_s, u"--dry-run"_s});
+    connect(wp,
+            &QProcess::finished,
+            this,
+            [this, wp, o, name, version, updateVersion](int exitCode, QProcess::ExitStatus exitStatus) {
+        wp->deleteLater();
+        if (exitStatus == QProcess::NormalExit && exitCode == 0) {
+            m_updatedPlugins.append(o);
+
+            //: %1 will be replaced by the plugin’s name, %2 by the current version
+            //: and %3 by the update version
+            //% "Successfully updated plugin %1 from version %2 to %3."
+            qInfo().noquote() << qtTrId("qwpup_info_plug_up_success").arg(name, version, updateVersion);
+
+            if (m_coreUpdated) {
+                QTimer::singleShot(0, this, &QWpUp::updatePlugin);
+                return;
+            }
+
+            QStringList assets = getPluginAssets(name);
+
+            if (assets.empty()) {
+                QTimer::singleShot(0, this, &QWpUp::updatePlugin);
+                return;
+            }
+
+            qDebug() << assets;
+
+            //: %1 will be replaced by the plugin name
+            //% "Start compressing assets for plugin %1."
+            qInfo().noquote() << qtTrId("qwpup_info_plug_compr_assets").arg(name);
+
+            auto watcher = new QFutureWatcher<void>(this); // NOLINT(cppcoreguidelines-owning-memory)
+            connect(watcher, &QFutureWatcher<void>::finished, this, [this, name, watcher]() {
+                watcher->deleteLater();
+                //: %1 will be replaced by the plugin name
+                //% "Finished compressing assets for plugin %1."
+                qInfo().noquote() << qtTrId("qwpup_info_plug_compr_assets_finished").arg(name);
+                QTimer::singleShot(0, this, &QWpUp::updatePlugin);
+            });
+            auto future = QtConcurrent::mapped(assets, compressAsset);
+            if (future.isFinished()) {
+                watcher->deleteLater();
+                QTimer::singleShot(0, this, &QWpUp::updatePlugin);
+            } else {
+                watcher->setFuture(future);
+            }
+
+        } else {
+            const QString error = QString::fromLocal8Bit(wp->readAllStandardError().trimmed());
+            QJsonObject _o      = o;
+            _o.insert("error"_L1, error);
+            m_failedPlugins.append(_o);
+            qWarning().noquote() << error;
+            //: %1 will be replaced by the plugin’s name, %2 by the current version
+            //: and %3 by the update version
+            //% "Failed to update plugin %1 from version %2 to %3."
+            qWarning().noquote() << qtTrId("qwpup_err_plug_up_failed").arg(name, version, updateVersion);
+            QTimer::singleShot(0, this, &QWpUp::updatePlugin);
+        }
+    });
+    wp->start();
 }
 
 void QWpUp::checkThemeUpdates()
@@ -657,6 +824,21 @@ Answer QWpUp::askYesNo(const QString &question)
     }
 
     return Answer::No;
+}
+
+QStringList QWpUp::getAssets(const QString &basePath) const
+{
+    QStringList assets;
+    QDirIterator it(basePath, QStringList({u"*.js"_s, u"*.css"_s}), QDir::Files, QDirIterator::Subdirectories);
+    while (it.hasNext()) {
+        assets.emplace_back(it.next());
+    }
+    return assets;
+}
+
+QStringList QWpUp::getPluginAssets(const QString &pluginName) const
+{
+    return getAssets(m_wpDir.absoluteFilePath(u"wp-content/plugins/"_s + pluginName));
 }
 
 #include "moc_qwpup.cpp"
