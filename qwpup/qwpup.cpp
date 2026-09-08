@@ -408,7 +408,7 @@ void QWpUp::updateCore()
         } else {
             qCritical().noquote() << wp->readAllStandardError().trimmed();
             //% "Failed to update WordPress core."
-            handleError(qtTrId("qwpup_err_wp_version_info_failed"), Error::Internal);
+            handleError(qtTrId("qwpup_err_wp_core_update_failed"), Error::Internal);
         }
     });
     wp->start();
@@ -446,21 +446,40 @@ Answer QWpUp::askYesNo(const QString &question)
 
     QString line;
 
-    out << question << " [(Y)es/(N)o/(C)ancel]: " << Qt::flush;
+    //% "(Y)es/(N)o/(C)ancel"
+    const QString _quest = question + " ["_L1 + qtTrId("qwpup_question_answers_full") + "]: "_L1;
+    //: Answer to a confirmation question, abbreviation for "Yes"
+    //% "Y"
+    const QString y = qtTrId("qwpup_quest_answer_yes_short");
+    //: Answer to a confirmation question, full word
+    //% "Yes"
+    const QString yes = qtTrId("qwpup_quest_answer_yes");
+    //: Answer to a confirmation question, abbreviation for "No"
+    //% "N"
+    const QString n = qtTrId("qwpup_quest_answer_no_short");
+    //: Answer to a confirmation question, full word
+    //% "No"
+    const QString no = qtTrId("qwpup_quest_answer_no");
+    //: Answer to a confirmation question, abbreviation for "Cancel"
+    //% "C"
+    const QString c = qtTrId("qwpup_quest_answer_cancel_short");
+    //: Answer to a confirmation question, full word"
+    //% "Cancel"
+    const QString cancel = qtTrId("qwpup_quest_answer_cancel");
+
+    out << _quest << Qt::flush;
     while (in.readLineInto(&line)) {
         const auto trimmedLine = line.trimmed();
-        if (trimmedLine.compare("Y"_L1, Qt::CaseInsensitive) == 0 ||
-            trimmedLine.compare("Yes"_L1, Qt::CaseInsensitive) == 0) {
+        if (trimmedLine.compare(y, Qt::CaseInsensitive) == 0 || trimmedLine.compare(yes, Qt::CaseInsensitive) == 0) {
             return Answer::Yes;
-        } else if (trimmedLine.compare("N"_L1, Qt::CaseInsensitive) == 0 ||
-                   trimmedLine.compare("No"_L1, Qt::CaseInsensitive) == 0) {
+        } else if (trimmedLine.compare(n, Qt::CaseInsensitive) == 0 || trimmedLine.compare(no, Qt::CaseInsensitive) == 0) {
             return Answer::No;
-        } else if (trimmedLine.compare("C"_L1, Qt::CaseInsensitive) == 0 ||
-                   trimmedLine.compare("Cancel"_L1, Qt::CaseInsensitive) == 0) {
+        } else if (trimmedLine.compare(c, Qt::CaseInsensitive) == 0 ||
+                   trimmedLine.compare(cancel, Qt::CaseInsensitive) == 0) {
             QCoreApplication::exit();
             return Answer::Cancel;
         }
-        out << question << " [(Y)es/(N)o/(C)ancel]: " << Qt::flush;
+        out << question << _quest << Qt::flush;
     }
 
     QCoreApplication::exit();

@@ -156,8 +156,46 @@
         <extracomment>Info message, %1 will be replaced by the previous WordPress core version, %2 will be replaced by the now updated version</extracomment>
         <translation type="unfinished"></translation>
     </message>
+    <message id="qwpup_err_wp_core_update_failed">
+        <source>Failed to update WordPress core.</source>
+        <translation type="unfinished"></translation>
+    </message>
     <message id="qwpup_info_check_plugin_updates">
         <source>Checking for plugin updates.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message id="qwpup_question_answers_full">
+        <source>(Y)es/(N)o/(C)ancel</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message id="qwpup_quest_answer_yes_short">
+        <source>Y</source>
+        <extracomment>Answer to a confirmation question, abbreviation for &quot;Yes&quot;</extracomment>
+        <translation type="unfinished"></translation>
+    </message>
+    <message id="qwpup_quest_answer_yes">
+        <source>Yes</source>
+        <extracomment>Answer to a confirmation question, full word</extracomment>
+        <translation type="unfinished"></translation>
+    </message>
+    <message id="qwpup_quest_answer_no_short">
+        <source>N</source>
+        <extracomment>Answer to a confirmation question, abbreviation for &quot;No&quot;</extracomment>
+        <translation type="unfinished"></translation>
+    </message>
+    <message id="qwpup_quest_answer_no">
+        <source>No</source>
+        <extracomment>Answer to a confirmation question, full word</extracomment>
+        <translation type="unfinished"></translation>
+    </message>
+    <message id="qwpup_quest_answer_cancel_short">
+        <source>C</source>
+        <extracomment>Answer to a confirmation question, abbreviation for &quot;Cancel&quot;</extracomment>
+        <translation type="unfinished"></translation>
+    </message>
+    <message id="qwpup_quest_answer_cancel">
+        <source>Cancel</source>
+        <extracomment>Answer to a confirmation question, full word&quot;</extracomment>
         <translation type="unfinished"></translation>
     </message>
     <message id="qwpup_err_wp_dir_not_exists">
