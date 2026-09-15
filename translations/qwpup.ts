@@ -202,11 +202,6 @@
         <extracomment>%1 will bereplaced by the absolute file path, %2 the error message</extracomment>
         <translation type="unfinished"></translation>
     </message>
-    <message id="qwpup_warn_failed_read_asset_or_empty">
-        <source>Failed to read file or file is empty: %1</source>
-        <extracomment>%1 will bereplaced by the absolute file path</extracomment>
-        <translation type="unfinished"></translation>
-    </message>
     <message id="qwpup_warn_comp_brotli_too_large">
         <source>Required Brotli output buffer too large to compress input file of size %1: %2</source>
         <extracomment>%1 will be replaced by the size, %2 by the full path to the asset file</extracomment>
@@ -276,6 +271,16 @@
     <message id="qwpup_quest_answer_yes_short">
         <source>Y</source>
         <extracomment>Answer to a confirmation question, abbreviation for &quot;Yes&quot;</extracomment>
+        <translation type="unfinished"></translation>
+    </message>
+    <message id="qwpup_warn_failed_read_asset">
+        <source>Failed to read file: %1: %2</source>
+        <extracomment>%1 will be replaced by the full file path, %2 by the error string</extracomment>
+        <translation type="unfinished"></translation>
+    </message>
+    <message id="qwpup_dbg_skip_empty_asset">
+        <source>Skipping empty file: %1</source>
+        <extracomment>%1 will be replaced by the full file path</extracomment>
         <translation type="unfinished"></translation>
     </message>
     <message id="qwpup_quest_answer_yes">

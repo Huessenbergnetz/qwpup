@@ -572,11 +572,17 @@ QString compressAsset(const QString &asset)
         return {};
     }
 
-    const QByteArray data = input.readAll();
-    if (data.isEmpty()) {
-        //: %1 will bereplaced by the absolute file path
-        //% "Failed to read file or file is empty: %1"
-        qWarning().noquote() << qtTrId("qwpup_warn_failed_read_asset_or_empty").arg(asset);
+    QByteArray data(input.size(), Qt::Uninitialized);
+    if (auto dataRead = input.read(data.data(), input.size()); dataRead < 1) {
+        if (dataRead < 0) {
+            //: %1 will be replaced by the full file path, %2 by the error string
+            //% "Failed to read file: %1: %2"
+            qWarning().noquote() << qtTrId("qwpup_warn_failed_read_asset").arg(asset, input.errorString());
+        } else {
+            //: %1 will be replaced by the full file path
+            //% "Skipping empty file: %1"
+            qDebug().noquote() << qtTrId("qwpup_dbg_skip_empty_asset").arg(asset);
+        }
         return {};
     }
 
@@ -680,14 +686,12 @@ void QWpUp::updatePlugin()
                 return;
             }
 
-            QStringList assets = getPluginAssets(name);
+            const QStringList assets = getPluginAssets(name);
 
             if (assets.empty()) {
                 QTimer::singleShot(0, this, &QWpUp::updatePlugin);
                 return;
             }
-
-            qDebug() << assets;
 
             //: %1 will be replaced by the plugin name
             //% "Start compressing assets for plugin %1."
