@@ -431,7 +431,9 @@ void QWpUp::checkPluginUpdates()
     auto wp = wpProcess({u"plugin"_s, u"list"_s, u"--update=available"_s, u"--format=json"_s});
     connect(wp, &QProcess::finished, this, [this, wp](int exitCode, QProcess::ExitStatus exitStatus) {
         wp->deleteLater();
+
         if (exitStatus == QProcess::NormalExit && exitCode == 0) {
+
             QJsonParseError jpe;
             const auto json = QJsonDocument::fromJson(wp->readAllStandardOutput(), &jpe);
             if (jpe.error != QJsonParseError::NoError) {
@@ -555,6 +557,13 @@ void QWpUp::checkPluginUpdates()
             } else {
                 QTimer::singleShot(0, this, &QWpUp::updatePlugin);
             }
+
+        } else {
+
+            qWarning().noquote() << wp->readAllStandardError().trimmed();
+            //% "Failed to check for plugin updates."
+            qWarning().noquote() << qtTrId("qwpup_err_plug_check_failed");
+            QTimer::singleShot(0, this, &QWpUp::checkThemeUpdates);
         }
     });
     wp->start();
@@ -741,6 +750,166 @@ void QWpUp::checkThemeUpdates()
     //% "Checking for theme updates."
     qInfo().noquote() << qtTrId("qwpup_info_check_theme_updates");
 
+    auto wp = wpProcess({u"theme"_s, u"list"_s, u"--update=available"_s, u"--format=json"_s});
+    connect(wp, &QProcess::finished, this, [this, wp](int exitCode, QProcess::ExitStatus exitStatus) {
+        wp->deleteLater();
+
+        if (exitStatus == QProcess::NormalExit && exitCode == 0) {
+
+            QJsonParseError jpe;
+            const auto json = QJsonDocument::fromJson(wp->readAllStandardOutput(), &jpe);
+            if (jpe.error != QJsonParseError::NoError) {
+                qWarning().noquote() << qtTrId("qwpup_err_json_parse_failed").arg(jpe.errorString());
+                QTimer::singleShot(0, this, &QWpUp::updateCoreTranslations);
+                return;
+            }
+
+            if (!json.isArray()) {
+                qWarning().noquote() << qtTrId("qwpup_err_json_unexpected_type");
+                QTimer::singleShot(0, this, &QWpUp::updateCoreTranslations);
+                return;
+            }
+
+            const auto array = json.array();
+
+            if (array.isEmpty()) {
+                //% "No plugin updates available."
+                qInfo().noquote() << qtTrId("qwpup_info_no_plug_ups_avail");
+                QTimer::singleShot(0, this, &QWpUp::checkThemeUpdates);
+                return;
+            }
+
+            QList<QJsonObject> themesWithUpdates;
+
+            for (const auto &v : array) {
+                const auto o = v.toObject();
+#if QT_VERSION >= QT_VERSION_CHECK(6, 10, 0)
+                const auto curVer = QVersionNumber::fromString(o.value("version"_L1).toStringView()).normalized();
+                const auto updVer = QVersionNumber::fromString(o.value("update_version"_L1).toStringView()).normalized();
+#else
+                const auto curVer = QVersionNumber::fromString(o.value("version"_L1).toString()).normalized();
+                const auto updVer = QVersionNumber::fromString(o.value("update_version"_L1).toString()).normalized();
+#endif
+                const auto comPref = QVersionNumber::commonPrefix(curVer, updVer);
+
+                if (m_themesUpVersion == VersionPart::Patch) {
+                    if (comPref.segmentCount() >= 2) {
+                        themesWithUpdates.append(o); // clazy:exclude=reserve-candidates
+                        m_themesToUpdate.enqueue(o);
+                    } else {
+                        m_skippedThemes.append(v);
+                    }
+                } else if (m_themesUpVersion == VersionPart::Minor) {
+                    if (comPref.segmentCount() >= 1) {
+                        themesWithUpdates.append(o); // clazy:exclude=reserve-candidates
+                        m_themesToUpdate.enqueue(o);
+                    } else {
+                        m_skippedThemes.append(v);
+                    }
+                } else {
+                    themesWithUpdates.append(o); // clazy:exclude=reserve-candidates
+                    m_themesToUpdate.enqueue(o);
+                }
+            }
+
+            if (m_logLevel == QtDebugMsg) {
+
+                const QString none = qtTrId("qwpup_info_updates_none");
+
+                if (!themesWithUpdates.empty()) {
+                    for (const auto &o : std::as_const(themesWithUpdates)) {
+                        const auto name   = o.value("name"_L1).toString();
+                        const auto curVer = o.value("version"_L1).toString();
+                        const auto updVer = o.value("update_version"_L1).toString();
+                        //: %1 will be replaced by the theme name, %2 by the current version, %3 by the update version
+                        //% "Available theme update: %1 %2 => %3"
+                        qDebug().noquote() << qtTrId("qwpup_dbg_avail_theme_up").arg(name, curVer, updVer);
+                    }
+                } else {
+                    //: %1 will be replaced by a comma separated list of theme updates or "none".
+                    //% "Available theme updates: %1."
+                    qDebug().noquote() << qtTrId("qwpup_info_avail_theme_ups").arg(none);
+                }
+
+                if (!m_skippedThemes.empty()) {
+                    for (const auto &v : std::as_const(m_skippedThemes)) {
+                        const auto o      = v.toObject();
+                        const auto name   = o.value("name"_L1).toString();
+                        const auto curVer = o.value("version"_L1).toString();
+                        const auto updVer = o.value("update_version"_L1).toString();
+                        //: %1 will be replaced by the theme name, %2 by the current version, %3 by the update version
+                        //% "Skipped theme update: %1 %2 => %3"
+                        qDebug().noquote() << qtTrId("qwpup_dbg_skipped_theme_up").arg(name, curVer, updVer);
+                    }
+                } else {
+                    //: %1 will be replaced by a comma separated list of theme updates.
+                    //% "Skipped theme updates: %1."
+                    qDebug().noquote() << qtTrId("qwpup_info_skipp_theme_ups").arg(none);
+                }
+
+            } else if (m_logLevel == QtInfoMsg) {
+
+                const QString none = qtTrId("qwpup_info_updates_none");
+
+                if (!themesWithUpdates.empty()) {
+                    QStringList availUpdates;
+                    availUpdates.reserve(themesWithUpdates.size());
+                    for (const auto &o : std::as_const(themesWithUpdates)) {
+                        availUpdates << o.value("name"_L1).toString();
+                    }
+                    qInfo().noquote()
+                        << qtTrId("qwpup_info_avail_theme_ups").arg(m_locale.createSeparatedList(availUpdates));
+                } else {
+                    qInfo().noquote() << qtTrId("qwpup_info_avail_theme_ups").arg(none);
+                }
+
+                if (!m_skippedThemes.empty()) {
+                    QStringList skippedUpdates;
+                    skippedUpdates.reserve(m_skippedThemes.size());
+                    for (const auto &v : std::as_const(m_skippedThemes)) {
+                        skippedUpdates << v.toObject().value("name"_L1).toString();
+                    }
+                    qInfo().noquote()
+                        << qtTrId("qwpup_info_skipp_theme_ups").arg(m_locale.createSeparatedList(skippedUpdates));
+                } else {
+                    qDebug().noquote() << qtTrId("qwpup_info_skipp_theme_ups").arg(none);
+                }
+            }
+
+            if (m_themesToUpdate.empty()) {
+                QTimer::singleShot(0, this, &QWpUp::updateCoreTranslations);
+            } else {
+                QTimer::singleShot(0, this, &QWpUp::updateTheme);
+            }
+
+        } else {
+
+            qWarning().noquote() << wp->readAllStandardError().trimmed();
+            //% "Failed to check for theme updates."
+            qWarning().noquote() << qtTrId("qwpup_err_theme_check_failed");
+            QTimer::singleShot(0, this, &QWpUp::updateCoreTranslations);
+        }
+    });
+    wp->start();
+}
+
+void QWpUp::updateTheme()
+{
+    QCoreApplication::exit();
+}
+
+void QWpUp::updateCoreTranslations()
+{
+    QCoreApplication::exit();
+}
+
+void QWpUp::updatePluginTranslations()
+{
+    QCoreApplication::exit();
+}
+
+void QWpUp::updateThemeTranslations()
+{
     QCoreApplication::exit();
 }
 

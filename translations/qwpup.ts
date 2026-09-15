@@ -197,6 +197,10 @@
         <extracomment>%1 will be replaced by a comma separated list of plugin updates.</extracomment>
         <translation type="unfinished"></translation>
     </message>
+    <message id="qwpup_err_plug_check_failed">
+        <source>Failed to check for plugin updates.</source>
+        <translation type="unfinished"></translation>
+    </message>
     <message id="qwpup_warn_failed_open_asset">
         <source>Failed to open %1 for reading: %2</source>
         <extracomment>%1 will bereplaced by the absolute file path, %2 the error message</extracomment>
@@ -257,6 +261,30 @@
     </message>
     <message id="qwpup_info_check_theme_updates">
         <source>Checking for theme updates.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message id="qwpup_dbg_avail_theme_up">
+        <source>Available theme update: %1 %2 =&gt; %3</source>
+        <extracomment>%1 will be replaced by the theme name, %2 by the current version, %3 by the update version</extracomment>
+        <translation type="unfinished"></translation>
+    </message>
+    <message id="qwpup_info_avail_theme_ups">
+        <source>Available theme updates: %1.</source>
+        <extracomment>%1 will be replaced by a comma separated list of theme updates or &quot;none&quot;.</extracomment>
+        <translation type="unfinished"></translation>
+    </message>
+    <message id="qwpup_dbg_skipped_theme_up">
+        <source>Skipped theme update: %1 %2 =&gt; %3</source>
+        <extracomment>%1 will be replaced by the theme name, %2 by the current version, %3 by the update version</extracomment>
+        <translation type="unfinished"></translation>
+    </message>
+    <message id="qwpup_info_skipp_theme_ups">
+        <source>Skipped theme updates: %1.</source>
+        <extracomment>%1 will be replaced by a comma separated list of theme updates.</extracomment>
+        <translation type="unfinished"></translation>
+    </message>
+    <message id="qwpup_err_theme_check_failed">
+        <source>Failed to check for theme updates.</source>
         <translation type="unfinished"></translation>
     </message>
     <message id="qwpup_question_answers_yesnocancel">

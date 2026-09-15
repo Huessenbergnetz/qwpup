@@ -38,6 +38,10 @@ private slots:
     void checkPluginUpdates();
     void updatePlugin();
     void checkThemeUpdates();
+    void updateTheme();
+    void updateCoreTranslations();
+    void updatePluginTranslations();
+    void updateThemeTranslations();
 
 private:
     void handleError(const QString &msg, Error exitCode);
@@ -52,9 +56,13 @@ private:
     QString m_availMajCoreVersion;
     QString m_availMinCoreVersoin;
     QQueue<QJsonObject> m_pluginsToUpdate;
+    QQueue<QJsonObject> m_themesToUpdate;
     QJsonArray m_skippedPlugins;
     QJsonArray m_updatedPlugins;
     QJsonArray m_failedPlugins;
+    QJsonArray m_skippedThemes;
+    QJsonArray m_updatedThemes;
+    QJsonArray m_failedThemes;
     QLocale m_locale;
     QDir m_wpDir;
     std::unique_ptr<QTemporaryDir> m_tempDir;
