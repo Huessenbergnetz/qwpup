@@ -14,6 +14,7 @@
 #include <QDir>
 #include <QJsonArray>
 #include <QJsonObject>
+#include <QLocale>
 #include <QProcessEnvironment>
 #include <QQueue>
 
@@ -54,6 +55,7 @@ private:
     QJsonArray m_skippedPlugins;
     QJsonArray m_updatedPlugins;
     QJsonArray m_failedPlugins;
+    QLocale m_locale;
     QDir m_wpDir;
     std::unique_ptr<QTemporaryDir> m_tempDir;
     QProcessEnvironment m_env;

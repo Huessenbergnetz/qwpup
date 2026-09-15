@@ -245,8 +245,9 @@
         <translation type="unfinished"></translation>
     </message>
     <message id="qwpup_info_plug_compr_assets_finished">
-        <source>Finished compressing assets for plugin %1.</source>
-        <extracomment>%1 will be replaced by the plugin name</extracomment>
+        <source>Finished compressing assets for plugin %1 in %2 ms.</source>
+        <oldsource>Finished compressing assets for plugin %1.</oldsource>
+        <extracomment>%1 will be replaced by the plugin name, %2 by the duration the compression took in miliseconds</extracomment>
         <translation type="unfinished"></translation>
     </message>
     <message id="qwpup_err_plug_up_failed">

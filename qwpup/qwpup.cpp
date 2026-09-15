@@ -8,6 +8,7 @@
 #include "utils.h"
 
 #include <brotli/encode.h>
+#include <chrono>
 
 #include <QCommandLineOption>
 #include <QCommandLineParser>
@@ -17,7 +18,6 @@
 #include <QFutureWatcher>
 #include <QJsonDocument>
 #include <QJsonValue>
-#include <QLocale>
 #include <QLoggingCategory>
 #include <QProcess>
 #include <QStandardPaths>
@@ -50,7 +50,6 @@ Error QWpUp::start(const QStringList &arguments)
     parser.addHelpOption();
     parser.addVersionOption();
 
-    const QLocale locale;
     const QStringList logLevels({u"debug"_s, u"info"_s, u"warn"_s, u"crit"_s});
 #ifdef QT_DEBUG
     const QString defLl = u"debug"_s;
@@ -60,7 +59,7 @@ Error QWpUp::start(const QStringList &arguments)
     QCommandLineOption logLevelOpt(QStringList({u"l"_s, u"log-level"_s}),
                                    //: Option description in the CLI help
                                    //% "Log level and higher for that messages are shown. Available: %1. Default: %2"
-                                   qtTrId("qwpup_cli_opt_log_level").arg(locale.createSeparatedList(logLevels), defLl),
+                                   qtTrId("qwpup_cli_opt_log_level").arg(m_locale.createSeparatedList(logLevels), defLl),
                                    //: Option value name in the CLI help for the log level
                                    //% "level"
                                    qtTrId("qwpup_cli_opt_log_level_val"),
@@ -524,7 +523,6 @@ void QWpUp::checkPluginUpdates()
                 }
 
             } else if (m_logLevel == QtInfoMsg) {
-                QLocale locale;
 
                 const QString none = qtTrId("qwpup_info_updates_none");
 
@@ -534,7 +532,7 @@ void QWpUp::checkPluginUpdates()
                     for (const auto &o : std::as_const(pluginsWithUpdates)) {
                         availUpdates << o.value("name"_L1).toString();
                     }
-                    qInfo().noquote() << qtTrId("qwpup_info_avail_plug_ups").arg(locale.createSeparatedList(availUpdates));
+                    qInfo().noquote() << qtTrId("qwpup_info_avail_plug_ups").arg(m_locale.createSeparatedList(availUpdates));
                 } else {
                     qInfo().noquote() << qtTrId("qwpup_info_avail_plug_ups").arg(none);
                 }
@@ -545,7 +543,8 @@ void QWpUp::checkPluginUpdates()
                     for (const auto &v : std::as_const(m_skippedPlugins)) {
                         skippedUpdates << v.toObject().value("name"_L1).toString();
                     }
-                    qInfo().noquote() << qtTrId("qwpup_info_skipp_plug_ups").arg(locale.createSeparatedList(skippedUpdates));
+                    qInfo().noquote()
+                        << qtTrId("qwpup_info_skipp_plug_ups").arg(m_locale.createSeparatedList(skippedUpdates));
                 } else {
                     qInfo().noquote() << qtTrId("qwpup_info_skipp_plug_ups").arg(none);
                 }
@@ -681,6 +680,7 @@ void QWpUp::updatePlugin()
             //% "Successfully updated plugin %1 from version %2 to %3."
             qInfo().noquote() << qtTrId("qwpup_info_plug_up_success").arg(name, version, updateVersion);
 
+            // if the core has been updated, we will compress all in the end
             if (m_coreUpdated) {
                 QTimer::singleShot(0, this, &QWpUp::updatePlugin);
                 return;
@@ -698,11 +698,18 @@ void QWpUp::updatePlugin()
             qInfo().noquote() << qtTrId("qwpup_info_plug_compr_assets").arg(name);
 
             auto watcher = new QFutureWatcher<void>(this); // NOLINT(cppcoreguidelines-owning-memory)
-            connect(watcher, &QFutureWatcher<void>::finished, this, [this, name, watcher]() {
+            const auto start{std::chrono::steady_clock::now()};
+            connect(watcher, &QFutureWatcher<void>::finished, this, [this, name, watcher, start]() {
+                const auto end{std::chrono::steady_clock::now()};
                 watcher->deleteLater();
-                //: %1 will be replaced by the plugin name
-                //% "Finished compressing assets for plugin %1."
-                qInfo().noquote() << qtTrId("qwpup_info_plug_compr_assets_finished").arg(name);
+                const std::chrono::nanoseconds duration{end - start};
+                //: %1 will be replaced by the plugin name, %2 by the duration
+                //: the compression took in miliseconds
+                //% "Finished compressing assets for plugin %1 in %2 ms."
+                qInfo().noquote() << qtTrId("qwpup_info_plug_compr_assets_finished")
+                                         .arg(name,
+                                              m_locale.toString(
+                                                  std::chrono::duration_cast<std::chrono::milliseconds>(duration).count()));
                 QTimer::singleShot(0, this, &QWpUp::updatePlugin);
             });
             auto future = QtConcurrent::mapped(assets, compressAsset);
