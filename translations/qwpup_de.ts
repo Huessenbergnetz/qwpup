@@ -115,13 +115,28 @@
         <source>Checking for core updates.</source>
         <translation type="unfinished"></translation>
     </message>
+    <message id="qwpup_info_skip_minor_core_update">
+        <source>Skipping minor core update.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message id="qwpup_info_skip_plug_ups">
+        <source>Skipped plugin updates: %1.</source>
+        <extracomment>%1 will be replaced by a comma separated list of plugin updates.</extracomment>
+        <translation type="unfinished"></translation>
+    </message>
+    <message id="qwpup_info_skip_theme_ups">
+        <source>Skipped theme updates: %1.</source>
+        <extracomment>%1 will be replaced by a comma separated list of theme updates.</extracomment>
+        <translation type="unfinished"></translation>
+    </message>
     <message id="qwpup_err_json_parse_failed">
         <source>Failed to parse JSON data: %1</source>
         <extracomment>Error message, %1 will be replaced by the error message from the JSON parser.</extracomment>
         <translation type="unfinished"></translation>
     </message>
     <message id="qwpup_err_json_unexpected_type">
-        <source>Unexpected JSON type. Aborting.</source>
+        <source>Unexpected JSON type.</source>
+        <oldsource>Unexpected JSON type. Aborting.</oldsource>
         <translation type="unfinished"></translation>
     </message>
     <message id="qpwup_info_no_core_ups_avail">
@@ -134,10 +149,6 @@
     </message>
     <message id="qwpup_inf_maj_core_ver_avail">
         <source>New major core version available: %1</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message id="qwpup_info_skip_core_update">
-        <source>Skipping core update.</source>
         <translation type="unfinished"></translation>
     </message>
     <message id="qwpup_err_ep_core_up_check_failed">
@@ -192,11 +203,6 @@
         <extracomment>%1 will be replaced by the plugin name, %2 by the current version, %3 by the udpate version</extracomment>
         <translation type="unfinished"></translation>
     </message>
-    <message id="qwpup_info_skipp_plug_ups">
-        <source>Skipped plugin updates: %1.</source>
-        <extracomment>%1 will be replaced by a comma separated list of plugin updates.</extracomment>
-        <translation type="unfinished"></translation>
-    </message>
     <message id="qwpup_err_plug_check_failed">
         <source>Failed to check for plugin updates.</source>
         <translation type="unfinished"></translation>
@@ -227,7 +233,8 @@
         <translation type="unfinished"></translation>
     </message>
     <message id="qwpup_ask_update_plugin">
-        <source>Do you want to update plugin %1 from version %2 to %3?</source>
+        <source>Do you want to update the plugin “%1” from version %2 to %3?</source>
+        <oldsource>Do you want to update plugin %1 from version %2 to %3?</oldsource>
         <extracomment>%1 will be replaced by the plugin’s name, %2 by the current version and %3 by the update version</extracomment>
         <translation type="unfinished"></translation>
     </message>
@@ -282,17 +289,13 @@
         <extracomment>%1 will be replaced by the theme name, %2 by the current version, %3 by the update version</extracomment>
         <translation type="unfinished"></translation>
     </message>
-    <message id="qwpup_info_skipp_theme_ups">
-        <source>Skipped theme updates: %1.</source>
-        <extracomment>%1 will be replaced by a comma separated list of theme updates.</extracomment>
-        <translation type="unfinished"></translation>
-    </message>
     <message id="qwpup_err_theme_check_failed">
         <source>Failed to check for theme updates.</source>
         <translation type="unfinished"></translation>
     </message>
     <message id="qwpup_ask_update_theme">
-        <source>Do you want to update theme %1 from version %2 to %3?</source>
+        <source>Do you want to update the theme “%1” from version %2 to %3?</source>
+        <oldsource>Do you want to update theme %1 from version %2 to %3?</oldsource>
         <extracomment>%1 will be replaced by the themes’s name, %2 by the current version and %3 by the update version</extracomment>
         <translation type="unfinished"></translation>
     </message>
@@ -319,6 +322,33 @@
     <message id="qwpup_err_theme_up_failed">
         <source>Failed to update theme %1 from version %2 to %3.</source>
         <extracomment>%1 will be replaced by the plugin’s name, %2 by the current version and %3 by the update version</extracomment>
+        <translation type="unfinished"></translation>
+    </message>
+    <message id="qwpup_info_check_core_trans_updates">
+        <source>Checking for core translation updates.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message id="qwpup_info_no_core_lang_ups_avaqil">
+        <source>No core language updates availabe.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message id="qwpup_err_core_lang_check_failed">
+        <source>Failed to check for core translation updates.</source>
+        <oldsource>Failed to check for core language updates.</oldsource>
+        <translation type="unfinished"></translation>
+    </message>
+    <message id="qwpup_info_update_core_translations">
+        <source>Updating core translations: %1.</source>
+        <oldsource>Updating core translations.</oldsource>
+        <extracomment>%1 will be replaced by a list comma separated list of native language names</extracomment>
+        <translation type="unfinished"></translation>
+    </message>
+    <message id="qwpup_info_upd_core_lang_success">
+        <source>Successfully updated core translations.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message id="qwpup_err_upd_core_langs_failed">
+        <source>Failed to update core translations.</source>
         <translation type="unfinished"></translation>
     </message>
     <message id="qwpup_question_answers_yesnocancel">

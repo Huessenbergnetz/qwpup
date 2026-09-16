@@ -322,31 +322,20 @@ void QWpUp::listCoreVersions()
         wp->deleteLater();
         if (exitStatus == QProcess::NormalExit && exitCode == 0) {
 
-            QJsonParseError jpe;
-            const auto json = QJsonDocument::fromJson(wp->readAllStandardOutput(), &jpe);
-            if (jpe.error != QJsonParseError::NoError) {
-                //: Error message, %1 will be replaced by the error message from the JSON parser.
-                //% "Failed to parse JSON data: %1"
-                handleError(qtTrId("qwpup_err_json_parse_failed").arg(jpe.errorString()), Error::Internal);
+            const auto array = getJsonArray(wp);
+            if (!array) {
+                handleError(array.error(), Error::Internal);
                 return;
             }
 
-            if (!json.isArray()) {
-                //% "Unexpected JSON type. Aborting."
-                handleError(qtTrId("qwpup_err_json_unexpected_type"), Error::Internal);
-                return;
-            }
-
-            const auto array = json.array();
-
-            if (array.isEmpty()) {
+            if (array->isEmpty()) {
                 //% "No core updates available."
                 qInfo().noquote() << qtTrId("qpwup_info_no_core_ups_avail");
                 QTimer::singleShot(0, this, &QWpUp::checkPluginUpdates);
                 return;
             }
 
-            for (const auto &v : array) {
+            for (const auto &v : *array) {
                 const auto o          = v.toObject();
                 const auto updateType = o.value("update_type"_L1).toString();
                 if (updateType == "minor"_L1) {
@@ -366,8 +355,8 @@ void QWpUp::listCoreVersions()
             if ((!m_wpUpMajor && m_minCoreUpAvail) || (m_wpUpMajor && m_majCoreUpAvail)) {
                 QTimer::singleShot(0, this, &QWpUp::updateCore);
             } else {
-                //% "Skipping core update."
-                qInfo().noquote() << qtTrId("qwpup_info_skip_core_update");
+                //% "Skipping minor core update."
+                qInfo().noquote() << qtTrId("qwpup_info_skip_minor_core_update");
                 QTimer::singleShot(0, this, &QWpUp::checkPluginUpdates);
             }
 
@@ -434,23 +423,13 @@ void QWpUp::checkPluginUpdates()
 
         if (exitStatus == QProcess::NormalExit && exitCode == 0) {
 
-            QJsonParseError jpe;
-            const auto json = QJsonDocument::fromJson(wp->readAllStandardOutput(), &jpe);
-            if (jpe.error != QJsonParseError::NoError) {
-                qWarning().noquote() << qtTrId("qwpup_err_json_parse_failed").arg(jpe.errorString());
-                QTimer::singleShot(0, this, &QWpUp::checkThemeUpdates);
+            const auto array = getJsonArray(wp);
+            if (!array) {
+                handleError(array.error(), Error::Internal);
                 return;
             }
 
-            if (!json.isArray()) {
-                qWarning().noquote() << qtTrId("qwpup_err_json_unexpected_type");
-                QTimer::singleShot(0, this, &QWpUp::checkThemeUpdates);
-                return;
-            }
-
-            const auto array = json.array();
-
-            if (array.isEmpty()) {
+            if (array->empty()) {
                 //% "No plugin updates available."
                 qInfo().noquote() << qtTrId("qwpup_info_no_plug_ups_avail");
                 QTimer::singleShot(0, this, &QWpUp::checkThemeUpdates);
@@ -459,11 +438,16 @@ void QWpUp::checkPluginUpdates()
 
             QList<QJsonObject> pluginsWithUpdates;
 
-            for (const auto &v : array) {
-                const auto o             = v.toObject();
-                const auto version       = QVersionNumber::fromString(o.value("version"_L1).toString()).normalized();
-                const auto updateVersion = QVersionNumber::fromString(o.value("update_version"_L1).toString()).normalized();
-                const auto commonPrefix  = QVersionNumber::commonPrefix(version, updateVersion);
+            for (const auto &v : *array) {
+                const auto o = v.toObject();
+#if QT_VERSION >= QT_VERSION_CHECK(6, 10, 0)
+                const auto curVer = QVersionNumber::fromString(o.value("version"_L1).toStringView()).normalized();
+                const auto updVer = QVersionNumber::fromString(o.value("update_version"_L1).toStringView()).normalized();
+#else
+                const auto curVer = QVersionNumber::fromString(o.value("version"_L1).toString()).normalized();
+                const auto updVer = QVersionNumber::fromString(o.value("update_version"_L1).toString()).normalized();
+#endif
+                const auto commonPrefix = QVersionNumber::commonPrefix(curVer, updVer);
 
                 // NOLINTNEXTLINE(bugprone-branch-clone)
                 if (m_plugsUpVersion == VersionPart::Patch) {
@@ -521,7 +505,7 @@ void QWpUp::checkPluginUpdates()
                 } else {
                     //: %1 will be replaced by a comma separated list of plugin updates.
                     //% "Skipped plugin updates: %1."
-                    qDebug().noquote() << qtTrId("qwpup_info_skipp_plug_ups").arg(none);
+                    qDebug().noquote() << qtTrId("qwpup_info_skip_plug_ups").arg(none);
                 }
 
             } else if (m_logLevel == QtInfoMsg) {
@@ -546,9 +530,9 @@ void QWpUp::checkPluginUpdates()
                         skippedUpdates << v.toObject().value("name"_L1).toString();
                     }
                     qInfo().noquote()
-                        << qtTrId("qwpup_info_skipp_plug_ups").arg(m_locale.createSeparatedList(skippedUpdates));
+                        << qtTrId("qwpup_info_skip_plug_ups").arg(m_locale.createSeparatedList(skippedUpdates));
                 } else {
-                    qInfo().noquote() << qtTrId("qwpup_info_skipp_plug_ups").arg(none);
+                    qInfo().noquote() << qtTrId("qwpup_info_skip_plug_ups").arg(none);
                 }
             }
 
@@ -662,7 +646,7 @@ void QWpUp::updatePlugin()
     if (!m_sayYes) {
         //: %1 will be replaced by the plugin’s name, %2 by the current version
         //: and %3 by the update version
-        //% "Do you want to update plugin %1 from version %2 to %3?"
+        //% "Do you want to update the plugin “%1” from version %2 to %3?"
         if (askYesNo(qtTrId("qwpup_ask_update_plugin").arg(name, version, updateVersion)) != Answer::Yes) {
             m_skippedPlugins.append(o);
             QTimer::singleShot(0, this, &QWpUp::updatePlugin);
@@ -756,23 +740,13 @@ void QWpUp::checkThemeUpdates()
 
         if (exitStatus == QProcess::NormalExit && exitCode == 0) {
 
-            QJsonParseError jpe;
-            const auto json = QJsonDocument::fromJson(wp->readAllStandardOutput(), &jpe);
-            if (jpe.error != QJsonParseError::NoError) {
-                qWarning().noquote() << qtTrId("qwpup_err_json_parse_failed").arg(jpe.errorString());
-                QTimer::singleShot(0, this, &QWpUp::updateCoreTranslations);
+            const auto array = getJsonArray(wp);
+            if (!array) {
+                handleError(array.error(), Error::Internal);
                 return;
             }
 
-            if (!json.isArray()) {
-                qWarning().noquote() << qtTrId("qwpup_err_json_unexpected_type");
-                QTimer::singleShot(0, this, &QWpUp::updateCoreTranslations);
-                return;
-            }
-
-            const auto array = json.array();
-
-            if (array.isEmpty()) {
+            if (array->isEmpty()) {
                 //% "No theme updates available."
                 qInfo().noquote() << qtTrId("qwpup_info_no_theme_ups_avail");
                 QTimer::singleShot(0, this, &QWpUp::checkThemeUpdates);
@@ -781,7 +755,7 @@ void QWpUp::checkThemeUpdates()
 
             QList<QJsonObject> themesWithUpdates;
 
-            for (const auto &v : array) {
+            for (const auto &v : *array) {
                 const auto o = v.toObject();
 #if QT_VERSION >= QT_VERSION_CHECK(6, 10, 0)
                 const auto curVer = QVersionNumber::fromString(o.value("version"_L1).toStringView()).normalized();
@@ -844,7 +818,7 @@ void QWpUp::checkThemeUpdates()
                 } else {
                     //: %1 will be replaced by a comma separated list of theme updates.
                     //% "Skipped theme updates: %1."
-                    qDebug().noquote() << qtTrId("qwpup_info_skipp_theme_ups").arg(none);
+                    qDebug().noquote() << qtTrId("qwpup_info_skip_theme_ups").arg(none);
                 }
 
             } else if (m_logLevel == QtInfoMsg) {
@@ -870,14 +844,14 @@ void QWpUp::checkThemeUpdates()
                         skippedUpdates << v.toObject().value("name"_L1).toString();
                     }
                     qInfo().noquote()
-                        << qtTrId("qwpup_info_skipp_theme_ups").arg(m_locale.createSeparatedList(skippedUpdates));
+                        << qtTrId("qwpup_info_skip_theme_ups").arg(m_locale.createSeparatedList(skippedUpdates));
                 } else {
-                    qDebug().noquote() << qtTrId("qwpup_info_skipp_theme_ups").arg(none);
+                    qDebug().noquote() << qtTrId("qwpup_info_skip_theme_ups").arg(none);
                 }
             }
 
             if (m_themesToUpdate.empty()) {
-                QTimer::singleShot(0, this, &QWpUp::updateCoreTranslations);
+                QTimer::singleShot(0, this, &QWpUp::checkCoreTranslations);
             } else {
                 QTimer::singleShot(0, this, &QWpUp::updateTheme);
             }
@@ -887,7 +861,7 @@ void QWpUp::checkThemeUpdates()
             qWarning().noquote() << wp->readAllStandardError().trimmed();
             //% "Failed to check for theme updates."
             qWarning().noquote() << qtTrId("qwpup_err_theme_check_failed");
-            QTimer::singleShot(0, this, &QWpUp::updateCoreTranslations);
+            QTimer::singleShot(0, this, &QWpUp::checkCoreTranslations);
         }
     });
     wp->start();
@@ -896,7 +870,7 @@ void QWpUp::checkThemeUpdates()
 void QWpUp::updateTheme()
 {
     if (m_themesToUpdate.empty()) {
-        QTimer::singleShot(0, this, &QWpUp::updateCoreTranslations);
+        QTimer::singleShot(0, this, &QWpUp::checkCoreTranslations);
         return;
     }
 
@@ -908,7 +882,7 @@ void QWpUp::updateTheme()
     if (!m_sayYes) {
         //: %1 will be replaced by the themes’s name, %2 by the current version
         //: and %3 by the update version
-        //% "Do you want to update theme %1 from version %2 to %3?"
+        //% "Do you want to update the theme “%1” from version %2 to %3?"
         if (askYesNo(qtTrId("qwpup_ask_update_theme").arg(name, curVer, updVer)) != Answer::Yes) {
             m_skippedThemes.append(o);
             QTimer::singleShot(0, this, &QWpUp::updateTheme);
@@ -994,12 +968,82 @@ void QWpUp::updateTheme()
     wp->start();
 }
 
+void QWpUp::checkCoreTranslations()
+{
+    //% "Checking for core translation updates."
+    qInfo().noquote() << qtTrId("qwpup_info_check_core_trans_updates");
+
+    auto wp = wpProcess({u"language"_s, u"core"_s, u"list"_s, u"--update=available"_s, u"--format=json"_s});
+    connect(wp, &QProcess::finished, this, [this, wp](int exitCode, QProcess::ExitStatus exitStatus) {
+        wp->deleteLater();
+
+        if (exitStatus == QProcess::NormalExit && exitCode == 0) {
+
+            const auto array = getJsonArray(wp);
+            if (!array) {
+                handleError(array.error(), Error::Internal);
+                return;
+            }
+
+            if (array->empty()) {
+                //% "No core language updates availabe."
+                qInfo().noquote() << qtTrId("qwpup_info_no_core_lang_ups_avaqil");
+                QTimer::singleShot(0, this, &QWpUp::checkPluginTranslations);
+                return;
+            }
+
+            QStringList availCoreLangUps;
+            availCoreLangUps.reserve(array->size());
+            for (const auto &v : *array) {
+                availCoreLangUps << v.toObject().value("native_name"_L1).toString();
+            }
+            //: %1 will be replaced by a list comma separated list of native language names
+            //% "Updating core translations: %1."
+            qInfo().noquote()
+                << qtTrId("qwpup_info_update_core_translations").arg(m_locale.createSeparatedList(availCoreLangUps));
+            QTimer::singleShot(0, this, &QWpUp::updateCoreTranslations);
+
+        } else {
+            qWarning().noquote() << wp->readAllStandardOutput().trimmed();
+            //% "Failed to check for core translation updates."
+            qWarning().noquote() << qtTrId("qwpup_err_core_lang_check_failed");
+            QTimer::singleShot(0, this, &QWpUp::checkPluginTranslations);
+        }
+    });
+    wp->start();
+}
+
 void QWpUp::updateCoreTranslations()
+{
+    auto wp = wpProcess({u"language"_s, u"core"_s, u"update"_s, u"--dry-run"_s});
+    connect(wp, &QProcess::finished, this, [this, wp](int exitCode, QProcess::ExitStatus exitStatus) {
+        wp->deleteLater();
+
+        if (exitStatus == QProcess::NormalExit && exitCode == 0) {
+            //% "Successfully updated core translations."
+            qInfo().noquote() << qtTrId("qwpup_info_upd_core_lang_success");
+        } else {
+            qWarning().noquote() << wp->readAllStandardError().trimmed();
+            //% "Failed to update core translations."
+            qWarning().noquote() << qtTrId("qwpup_err_upd_core_langs_failed");
+        }
+
+        QTimer::singleShot(0, this, &QWpUp::checkPluginTranslations);
+    });
+    wp->start();
+}
+
+void QWpUp::checkPluginTranslations()
 {
     QTimer::singleShot(0, this, &QWpUp::updatePluginTranslations);
 }
 
 void QWpUp::updatePluginTranslations()
+{
+    QTimer::singleShot(0, this, &QWpUp::checkThemeTranslations);
+}
+
+void QWpUp::checkThemeTranslations()
 {
     QTimer::singleShot(0, this, &QWpUp::updateThemeTranslations);
 }
@@ -1031,6 +1075,10 @@ QProcess *QWpUp::wpProcess(const QStringList &arguments)
     return proc;
 }
 
+/**
+ * Asks a \a question on \c stdout and reads the answer from \c stdin. The anwer can be
+ * yes, no or cancel.
+ */
 Answer QWpUp::askYesNoCancel(const QString &question)
 {
     QTextStream out(stdout);
@@ -1078,6 +1126,10 @@ Answer QWpUp::askYesNoCancel(const QString &question)
     return Answer::Cancel;
 }
 
+/**
+ * Asks a \a question on \c stdout and reads the answer from \c stdin. The anwer can be
+ * yes or no.
+ */
 Answer QWpUp::askYesNo(const QString &question)
 {
     QTextStream out(stdout);
@@ -1107,6 +1159,10 @@ Answer QWpUp::askYesNo(const QString &question)
     return Answer::No;
 }
 
+/**
+ * Returns a list of all JS and CSS files below \a basePath. The directory at \a basePath
+ * will be searched recursively for the asset files.
+ */
 QStringList QWpUp::getAssets(const QString &basePath) const
 {
     QStringList assets;
@@ -1117,14 +1173,45 @@ QStringList QWpUp::getAssets(const QString &basePath) const
     return assets;
 }
 
-QStringList QWpUp::getPluginAssets(const QString &pluginName) const
+/**
+ * Returns all assets for the plugin identified by it’s \a name.
+ */
+QStringList QWpUp::getPluginAssets(const QString &name) const
 {
-    return getAssets(m_wpDir.absoluteFilePath(u"wp-content/plugins/"_s + pluginName));
+    return getAssets(m_wpDir.absoluteFilePath(u"wp-content/plugins/"_s + name));
 }
 
-QStringList QWpUp::getThemeAssets(const QString &themeName) const
+/**
+ * Returns all assets for the theme identified by it’s \a name.
+ */
+QStringList QWpUp::getThemeAssets(const QString &name) const
 {
-    return getAssets(m_wpDir.absoluteFilePath(u"wp-content/themes/"_s + themeName));
+    return getAssets(m_wpDir.absoluteFilePath(u"wp-content/themes/"_s + name));
+}
+
+/**
+ * Returns a QJsonArray by reading all available data from stdout from
+ * process \a p.
+ *
+ * If parsing the JSON data fails, the unexpected return value will contain
+ * the error string.
+ */
+std::expected<QJsonArray, QString> QWpUp::getJsonArray(QProcess *p) const
+{
+    QJsonParseError jpe;
+    const auto json = QJsonDocument::fromJson(p->readAllStandardOutput(), &jpe);
+    if (jpe.error != QJsonParseError::NoError) {
+        //: Error message, %1 will be replaced by the error message from the JSON parser.
+        //% "Failed to parse JSON data: %1"
+        return std::unexpected(qtTrId("qwpup_err_json_parse_failed").arg(jpe.errorString()));
+    }
+
+    if (!json.isArray()) {
+        //% "Unexpected JSON type."
+        return std::unexpected(qtTrId("qwpup_err_json_unexpected_type"));
+    }
+
+    return json.array();
 }
 
 #include "moc_qwpup.cpp"

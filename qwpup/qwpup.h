@@ -8,6 +8,7 @@
 
 #include "enums.h"
 
+#include <expected>
 #include <memory>
 
 #include <QCoreApplication>
@@ -39,8 +40,11 @@ private slots:
     void updatePlugin();
     void checkThemeUpdates();
     void updateTheme();
+    void checkCoreTranslations();
     void updateCoreTranslations();
+    void checkPluginTranslations();
     void updatePluginTranslations();
+    void checkThemeTranslations();
     void updateThemeTranslations();
     void finish();
 
@@ -50,8 +54,9 @@ private:
     Answer askYesNoCancel(const QString &question);
     Answer askYesNo(const QString &question);
     [[nodiscard]] QStringList getAssets(const QString &basePath) const;
-    [[nodiscard]] QStringList getPluginAssets(const QString &pluginName) const;
-    [[nodiscard]] QStringList getThemeAssets(const QString &themeName) const;
+    [[nodiscard]] QStringList getPluginAssets(const QString &name) const;
+    [[nodiscard]] QStringList getThemeAssets(const QString &name) const;
+    [[nodiscard]] std::expected<QJsonArray, QString> getJsonArray(QProcess *p) const;
 
     QString m_wpPath;
     QString m_currentCoreVersion;
