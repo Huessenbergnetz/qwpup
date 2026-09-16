@@ -773,8 +773,8 @@ void QWpUp::checkThemeUpdates()
             const auto array = json.array();
 
             if (array.isEmpty()) {
-                //% "No plugin updates available."
-                qInfo().noquote() << qtTrId("qwpup_info_no_plug_ups_avail");
+                //% "No theme updates available."
+                qInfo().noquote() << qtTrId("qwpup_info_no_theme_ups_avail");
                 QTimer::singleShot(0, this, &QWpUp::checkThemeUpdates);
                 return;
             }
@@ -895,22 +895,123 @@ void QWpUp::checkThemeUpdates()
 
 void QWpUp::updateTheme()
 {
-    QCoreApplication::exit();
+    if (m_themesToUpdate.empty()) {
+        QTimer::singleShot(0, this, &QWpUp::updateCoreTranslations);
+        return;
+    }
+
+    const QJsonObject o = m_themesToUpdate.dequeue();
+    const auto name     = o.value("name"_L1).toString();
+    const auto curVer   = o.value("version"_L1).toString();
+    const auto updVer   = o.value("update_version"_L1).toString();
+
+    if (!m_sayYes) {
+        //: %1 will be replaced by the themes’s name, %2 by the current version
+        //: and %3 by the update version
+        //% "Do you want to update theme %1 from version %2 to %3?"
+        if (askYesNo(qtTrId("qwpup_ask_update_theme").arg(name, curVer, updVer)) != Answer::Yes) {
+            m_skippedThemes.append(o);
+            QTimer::singleShot(0, this, &QWpUp::updateTheme);
+            return;
+        }
+    }
+
+    //: %1 will be replaced by the themes’s name, %2 by the current version
+    //: and %3 by the update version
+    //% "Updating theme %1 from version %2 to %3."
+    qInfo().noquote() << qtTrId("qwpup_info_update_theme").arg(name, curVer, updVer);
+
+    auto wp = wpProcess({u"theme"_s, u"update"_s, name, u"--format=json"_s, u"--dry-run"_s});
+    connect(
+        wp, &QProcess::finished, this, [this, wp, o, name, curVer, updVer](int exitCode, QProcess::ExitStatus exitStatus) {
+        wp->deleteLater();
+        if (exitStatus == QProcess::NormalExit && exitCode == 0) {
+            m_updatedThemes.append(o);
+
+            //: %1 will be replaced by the themes’s name, %2 by the current version
+            //: and %3 by the update version
+            //% "Successfully updated theme %1 from version %2 to %3."
+            qInfo().noquote() << qtTrId("qwpup_info_theme_up_success").arg(name, curVer, updVer);
+
+            // if the core has been updated, we will compress all in the end
+            if (m_coreUpdated) {
+                QTimer::singleShot(0, this, &QWpUp::updateTheme);
+                return;
+            }
+
+            const QStringList assets = getThemeAssets(name);
+
+            if (assets.empty()) {
+                QTimer::singleShot(0, this, &QWpUp::updateTheme);
+                return;
+            }
+
+            //: %1 will be replaced by the theme name
+            //% "Start compressing assets for theme %1."
+            qInfo().noquote() << qtTrId("qwpup_info_theme_compr_assets").arg(name);
+
+            auto watcher = new QFutureWatcher<void>(this); // NOLINT(cppcoreguidelines-owning-memory)
+            const auto start{std::chrono::steady_clock::now()};
+            connect(watcher, &QFutureWatcher<void>::finished, this, [this, name, watcher, start]() {
+                watcher->deleteLater();
+                const auto end{std::chrono::steady_clock::now()};
+                const std::chrono::nanoseconds duration{end - start};
+                //: %1 will be replaced by the theme name, %2 by the duration
+                //: the compression took in miliseconds
+                //% "Finished compressing assets for theme %1 in %2 ms."
+                qInfo().noquote() << qtTrId("qwpup_info_theme_compr_assets_finished")
+                                         .arg(name,
+                                              m_locale.toString(
+                                                  std::chrono::duration_cast<std::chrono::milliseconds>(duration).count()));
+                QTimer::singleShot(0, this, &QWpUp::updateTheme);
+            });
+            auto future = QtConcurrent::mapped(assets, compressAsset);
+            if (future.isFinished()) {
+                watcher->deleteLater();
+                const auto end{std::chrono::steady_clock::now()};
+                const std::chrono::nanoseconds duration{end - start};
+                qInfo().noquote() << qtTrId("qwpup_info_theme_compr_assets_finished")
+                                         .arg(name,
+                                              m_locale.toString(
+                                                  std::chrono::duration_cast<std::chrono::milliseconds>(duration).count()));
+                QTimer::singleShot(0, this, &QWpUp::updateTheme);
+            } else {
+                watcher->setFuture(future);
+            }
+
+        } else {
+            const QString error = QString::fromLocal8Bit(wp->readAllStandardError().trimmed());
+            QJsonObject _o      = o;
+            _o.insert("error"_L1, error);
+            qWarning().noquote() << error;
+            //: %1 will be replaced by the plugin’s name, %2 by the current version
+            //: and %3 by the update version
+            //% "Failed to update theme %1 from version %2 to %3."
+            qWarning().noquote() << qtTrId("qwpup_err_theme_up_failed").arg(name, curVer, updVer);
+            QTimer::singleShot(0, this, &QWpUp::updateTheme);
+        }
+    });
+    wp->start();
 }
 
 void QWpUp::updateCoreTranslations()
 {
-    QCoreApplication::exit();
+    QTimer::singleShot(0, this, &QWpUp::updatePluginTranslations);
 }
 
 void QWpUp::updatePluginTranslations()
 {
-    QCoreApplication::exit();
+    QTimer::singleShot(0, this, &QWpUp::updateThemeTranslations);
 }
 
 void QWpUp::updateThemeTranslations()
 {
-    QCoreApplication::exit();
+    QTimer::singleShot(0, this, &QWpUp::finish);
+}
+
+void QWpUp::finish()
+{
+    QCoreApplication::quit();
 }
 
 void QWpUp::handleError(const QString &msg, Error exitCode)
@@ -1019,6 +1120,11 @@ QStringList QWpUp::getAssets(const QString &basePath) const
 QStringList QWpUp::getPluginAssets(const QString &pluginName) const
 {
     return getAssets(m_wpDir.absoluteFilePath(u"wp-content/plugins/"_s + pluginName));
+}
+
+QStringList QWpUp::getThemeAssets(const QString &themeName) const
+{
+    return getAssets(m_wpDir.absoluteFilePath(u"wp-content/themes/"_s + themeName));
 }
 
 #include "moc_qwpup.cpp"

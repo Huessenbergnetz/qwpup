@@ -42,6 +42,7 @@ private slots:
     void updateCoreTranslations();
     void updatePluginTranslations();
     void updateThemeTranslations();
+    void finish();
 
 private:
     void handleError(const QString &msg, Error exitCode);
@@ -50,6 +51,7 @@ private:
     Answer askYesNo(const QString &question);
     [[nodiscard]] QStringList getAssets(const QString &basePath) const;
     [[nodiscard]] QStringList getPluginAssets(const QString &pluginName) const;
+    [[nodiscard]] QStringList getThemeAssets(const QString &themeName) const;
 
     QString m_wpPath;
     QString m_currentCoreVersion;

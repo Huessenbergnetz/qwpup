@@ -263,6 +263,10 @@
         <source>Checking for theme updates.</source>
         <translation type="unfinished"></translation>
     </message>
+    <message id="qwpup_info_no_theme_ups_avail">
+        <source>No theme updates available.</source>
+        <translation type="unfinished"></translation>
+    </message>
     <message id="qwpup_dbg_avail_theme_up">
         <source>Available theme update: %1 %2 =&gt; %3</source>
         <extracomment>%1 will be replaced by the theme name, %2 by the current version, %3 by the update version</extracomment>
@@ -285,6 +289,36 @@
     </message>
     <message id="qwpup_err_theme_check_failed">
         <source>Failed to check for theme updates.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message id="qwpup_ask_update_theme">
+        <source>Do you want to update theme %1 from version %2 to %3?</source>
+        <extracomment>%1 will be replaced by the themes’s name, %2 by the current version and %3 by the update version</extracomment>
+        <translation type="unfinished"></translation>
+    </message>
+    <message id="qwpup_info_update_theme">
+        <source>Updating theme %1 from version %2 to %3.</source>
+        <extracomment>%1 will be replaced by the themes’s name, %2 by the current version and %3 by the update version</extracomment>
+        <translation type="unfinished"></translation>
+    </message>
+    <message id="qwpup_info_theme_up_success">
+        <source>Successfully updated theme %1 from version %2 to %3.</source>
+        <extracomment>%1 will be replaced by the themes’s name, %2 by the current version and %3 by the update version</extracomment>
+        <translation type="unfinished"></translation>
+    </message>
+    <message id="qwpup_info_theme_compr_assets">
+        <source>Start compressing assets for theme %1.</source>
+        <extracomment>%1 will be replaced by the theme name</extracomment>
+        <translation type="unfinished"></translation>
+    </message>
+    <message id="qwpup_info_theme_compr_assets_finished">
+        <source>Finished compressing assets for theme %1 in %2 ms.</source>
+        <extracomment>%1 will be replaced by the theme name, %2 by the duration the compression took in miliseconds</extracomment>
+        <translation type="unfinished"></translation>
+    </message>
+    <message id="qwpup_err_theme_up_failed">
+        <source>Failed to update theme %1 from version %2 to %3.</source>
+        <extracomment>%1 will be replaced by the plugin’s name, %2 by the current version and %3 by the update version</extracomment>
         <translation type="unfinished"></translation>
     </message>
     <message id="qwpup_question_answers_yesnocancel">
