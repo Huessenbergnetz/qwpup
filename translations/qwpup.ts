@@ -129,6 +129,31 @@
         <extracomment>%1 will be replaced by a comma separated list of theme updates.</extracomment>
         <translation type="unfinished"></translation>
     </message>
+    <message id="qwpup_info_check_plugin_trans_updates">
+        <source>Checking for plugin translation updates.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message id="qwpup_info_no_plug_ups-avail">
+        <source>No plugin language updates available.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message id="qwpup_info_up_plug_langs">
+        <source>Updating languages for plugin „%1“: %2.</source>
+        <extracomment>%1 will be replaced by the plugin name, %2 by a list of the languages</extracomment>
+        <translation type="unfinished"></translation>
+    </message>
+    <message id="qwpup_err_plugs_lang_check_failed">
+        <source>Failed to check for plugin translation updates.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message id="qwpup_info_upd_plug_lang_success">
+        <source>Successfully updated plugin translations.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message id="qwpup_err_upd_plug_langs_failed">
+        <source>Failed to update plugin translations.</source>
+        <translation type="unfinished"></translation>
+    </message>
     <message id="qwpup_err_json_parse_failed">
         <source>Failed to parse JSON data: %1</source>
         <extracomment>Error message, %1 will be replaced by the error message from the JSON parser.</extracomment>

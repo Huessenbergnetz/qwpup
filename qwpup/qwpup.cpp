@@ -425,7 +425,8 @@ void QWpUp::checkPluginUpdates()
 
             const auto array = getJsonArray(wp);
             if (!array) {
-                handleError(array.error(), Error::Internal);
+                qWarning().noquote() << array.error();
+                QTimer::singleShot(0, this, &QWpUp::checkThemeUpdates);
                 return;
             }
 
@@ -742,14 +743,15 @@ void QWpUp::checkThemeUpdates()
 
             const auto array = getJsonArray(wp);
             if (!array) {
-                handleError(array.error(), Error::Internal);
+                qWarning().noquote() << array.error();
+                QTimer::singleShot(0, this, &QWpUp::checkCoreTranslations);
                 return;
             }
 
             if (array->isEmpty()) {
                 //% "No theme updates available."
                 qInfo().noquote() << qtTrId("qwpup_info_no_theme_ups_avail");
-                QTimer::singleShot(0, this, &QWpUp::checkThemeUpdates);
+                QTimer::singleShot(0, this, &QWpUp::checkCoreTranslations);
                 return;
             }
 
@@ -1035,12 +1037,77 @@ void QWpUp::updateCoreTranslations()
 
 void QWpUp::checkPluginTranslations()
 {
-    QTimer::singleShot(0, this, &QWpUp::updatePluginTranslations);
+    //% "Checking for plugin translation updates."
+    qInfo().noquote() << qtTrId("qwpup_info_check_plugin_trans_updates");
+
+    auto wp = wpProcess({u"language"_s, u"plugin"_s, u"list"_s, u"--all"_s, u"--update=available"_s, u"--format=json"_s});
+    connect(wp, &QProcess::finished, this, [this, wp](int exitCode, QProcess::ExitStatus exitStatus) {
+        wp->deleteLater();
+
+        if (exitStatus == QProcess::NormalExit && exitCode == 0) {
+
+            const auto array = getJsonArray(wp);
+            if (!array) {
+                qWarning().noquote() << array.error();
+                QTimer::singleShot(0, this, &QWpUp::checkThemeTranslations);
+                return;
+            }
+
+            if (array->empty()) {
+                //% "No plugin language updates available."
+                qInfo().noquote() << qtTrId("qwpup_info_no_plug_ups-avail");
+                QTimer::singleShot(0, this, &QWpUp::checkThemeTranslations);
+                return;
+            }
+
+            QMap<QString, QStringList> availPlugLangUps;
+            for (const auto &v : *array) {
+                const auto object = v.toObject();
+                const auto plugin = object.value("plugin"_L1).toString();
+                const auto name   = object.value("native_name"_L1).toString();
+
+                QStringList langs = availPlugLangUps.value(plugin);
+                langs << name;
+                availPlugLangUps.insert(plugin, langs);
+            }
+
+            for (auto i = availPlugLangUps.cbegin(), end = availPlugLangUps.cend(); i != end; ++i) {
+                //: %1 will be replaced by the plugin name, %2 by a list of the languages
+                //% "Updating languages for plugin „%1“: %2."
+                qInfo().noquote()
+                    << qtTrId("qwpup_info_up_plug_langs").arg(i.key(), m_locale.createSeparatedList(i.value()));
+            }
+
+            QTimer::singleShot(0, this, &QWpUp::updatePluginTranslations);
+
+        } else {
+            qWarning().noquote() << wp->readAllStandardError().trimmed();
+            //% "Failed to check for plugin translation updates."
+            qWarning().noquote() << qtTrId("qwpup_err_plugs_lang_check_failed");
+            QTimer::singleShot(0, this, &QWpUp::checkThemeTranslations);
+        }
+    });
+    wp->start();
 }
 
 void QWpUp::updatePluginTranslations()
 {
-    QTimer::singleShot(0, this, &QWpUp::checkThemeTranslations);
+    auto wp = wpProcess({u"language"_s, u"plugin"_s, u"update"_s, u"--all"_s, u"--dry-run"_s});
+    connect(wp, &QProcess::finished, this, [this, wp](int exitCode, QProcess::ExitStatus exitStatus) {
+        wp->deleteLater();
+
+        if (exitStatus == QProcess::NormalExit && exitCode == 0) {
+            //% "Successfully updated plugin translations."
+            qInfo().noquote() << qtTrId("qwpup_info_upd_plug_lang_success");
+        } else {
+            qWarning().noquote() << wp->readAllStandardError().trimmed();
+            //% "Failed to update plugin translations."
+            qWarning().noquote() << qtTrId("qwpup_err_upd_plug_langs_failed");
+        }
+
+        QTimer::singleShot(0, this, &QWpUp::checkThemeTranslations);
+    });
+    wp->start();
 }
 
 void QWpUp::checkThemeTranslations()
