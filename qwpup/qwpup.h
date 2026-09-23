@@ -56,6 +56,7 @@ private:
     [[nodiscard]] QStringList getAssets(const QString &basePath) const;
     [[nodiscard]] QStringList getPluginAssets(const QString &name) const;
     [[nodiscard]] QStringList getThemeAssets(const QString &name) const;
+    [[nodiscard]] QStringList getAllAssets() const;
     [[nodiscard]] std::expected<QJsonArray, QString> getJsonArray(QProcess *p) const;
 
     QString m_wpPath;

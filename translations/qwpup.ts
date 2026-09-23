@@ -133,10 +133,6 @@
         <source>Checking for plugin translation updates.</source>
         <translation type="unfinished"></translation>
     </message>
-    <message id="qwpup_info_no_plug_ups-avail">
-        <source>No plugin language updates available.</source>
-        <translation type="unfinished"></translation>
-    </message>
     <message id="qwpup_info_up_plug_langs">
         <source>Updating languages for plugin „%1“: %2.</source>
         <extracomment>%1 will be replaced by the plugin name, %2 by a list of the languages</extracomment>
@@ -399,6 +395,44 @@
     <message id="qwpup_dbg_skip_empty_asset">
         <source>Skipping empty file: %1</source>
         <extracomment>%1 will be replaced by the full file path</extracomment>
+        <translation type="unfinished"></translation>
+    </message>
+    <message id="qwpup_info_no_plug_lang_ups-avail">
+        <source>No plugin language updates available.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message id="qwpup_info_check_theme_trans_updates">
+        <source>Checking for theme translation updates.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message id="qwpup_info_no_theme_lang_ups-avail">
+        <source>No theme language updates available.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message id="qwpup_info_up_theme_langs">
+        <source>Updating languages for theme „%1“: %2.</source>
+        <extracomment>%1 will be replaced by the theme name, %2 by a list of the languages</extracomment>
+        <translation type="unfinished"></translation>
+    </message>
+    <message id="qwpup_err_theme_lang_check_failed">
+        <source>Failed to check for theme translation updates.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message id="qwpup_info_upd_theme_lang_success">
+        <source>Successfully updated theme translations.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message id="qwpup_err_upd_theme_langs_failed">
+        <source>Failed to update theme translations.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message id="qwpup_info_compr_all_assets">
+        <source>Start compressing assets for the whole installation.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message id="qwpup_info_compr_all_assets_finished">
+        <source>Finished compressing all assets in %1 ms.</source>
+        <extracomment>%1 will be replaced by the duration the compression took in miliseconds</extracomment>
         <translation type="unfinished"></translation>
     </message>
     <message id="qwpup_quest_answer_yes">
