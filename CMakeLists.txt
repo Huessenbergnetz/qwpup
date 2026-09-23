@@ -7,7 +7,7 @@ cmake_policy(SET CMP0048 NEW)
 cmake_policy(SET CMP0076 NEW)
 
 project(qwpup
-    VERSION 0.0.1
+    VERSION 1.0.0
     DESCRIPTION "Qt based wrapper for WP CLI to automate WordPress updates with some extras."
     HOMEPAGE_URL "https://github.com/Huessenbergnetz/qwpup"
     LANGUAGES CXX
