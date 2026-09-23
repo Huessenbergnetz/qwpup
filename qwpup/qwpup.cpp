@@ -691,9 +691,9 @@ void QWpUp::updatePlugin()
             //% "Start compressing assets for plugin %1."
             qInfo().noquote() << qtTrId("qwpup_info_plug_compr_assets").arg(name);
 
-            auto watcher = new QFutureWatcher<void>(this); // NOLINT(cppcoreguidelines-owning-memory)
+            auto watcher = new QFutureWatcher<QString>(this); // NOLINT(cppcoreguidelines-owning-memory)
             const auto start{std::chrono::steady_clock::now()};
-            connect(watcher, &QFutureWatcher<void>::finished, this, [this, name, watcher, start]() {
+            connect(watcher, &QFutureWatcher<QString>::finished, this, [this, name, watcher, start]() {
                 const auto end{std::chrono::steady_clock::now()};
                 watcher->deleteLater();
                 const std::chrono::nanoseconds duration{end - start};
@@ -926,9 +926,9 @@ void QWpUp::updateTheme()
             //% "Start compressing assets for theme %1."
             qInfo().noquote() << qtTrId("qwpup_info_theme_compr_assets").arg(name);
 
-            auto watcher = new QFutureWatcher<void>(this); // NOLINT(cppcoreguidelines-owning-memory)
+            auto watcher = new QFutureWatcher<QString>(this); // NOLINT(cppcoreguidelines-owning-memory)
             const auto start{std::chrono::steady_clock::now()};
-            connect(watcher, &QFutureWatcher<void>::finished, this, [this, name, watcher, start]() {
+            connect(watcher, &QFutureWatcher<QString>::finished, this, [this, name, watcher, start]() {
                 watcher->deleteLater();
                 const auto end{std::chrono::steady_clock::now()};
                 const std::chrono::nanoseconds duration{end - start};
@@ -1202,9 +1202,9 @@ void QWpUp::finish()
     //% "Start compressing assets for the whole installation."
     qInfo().noquote() << qtTrId("qwpup_info_compr_all_assets");
 
-    auto watcher = new QFutureWatcher<void>(this); // NOLINT(cppcoreguidelines-owning-memory)
+    auto watcher = new QFutureWatcher<QString>(this); // NOLINT(cppcoreguidelines-owning-memory)
     const auto start{std::chrono::steady_clock::now()};
-    connect(watcher, &QFutureWatcher<void>::finished, this, [this, watcher, start]() {
+    connect(watcher, &QFutureWatcher<QString>::finished, this, [this, watcher, start]() {
         watcher->deleteLater();
         const auto end{std::chrono::steady_clock::now()};
         const std::chrono::nanoseconds duration{end - start};
