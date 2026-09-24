@@ -92,7 +92,8 @@
     </message>
     <message id="qwpup_err_wp_exe_not_found">
         <source>Can not find WP CLI executable (wp or wp-cli). Check your PATH or explicitely set the path to the executable with “%1”.</source>
-        <oldsource>Can not find WP CLI executable. Check your PATH or explicitely set the path to the executable with “%1”.</oldsource>
+        <oldsource>Can not find WP CLI executable (wp or wp-cli). Check your PATH or explicitely set the path to the executable
+</oldsource>
         <extracomment>Error message, %1 will be replaced with a CLI option name like --wp-cli</extracomment>
         <translation type="unfinished"></translation>
     </message>
@@ -161,6 +162,11 @@
     </message>
     <message id="qwpup_cli_opt_dry_run">
         <source>Do not perform the real actions.</source>
+        <extracomment>Option description in the CLI help</extracomment>
+        <translation type="unfinished"></translation>
+    </message>
+    <message id="qwpup_cli_opt_stats">
+        <source>Write stats to file at path or stdout.</source>
         <extracomment>Option description in the CLI help</extracomment>
         <translation type="unfinished"></translation>
     </message>

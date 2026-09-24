@@ -8,6 +8,8 @@ target_sources(qwpup
         main.cpp
         qwpup.h
         qwpup.cpp
+        wp.h
+        wp.cpp
         ../common/utils.h
         ../common/utils.cpp
         ../common/enums.h

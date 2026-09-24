@@ -92,9 +92,10 @@
     </message>
     <message id="qwpup_err_wp_exe_not_found">
         <source>Can not find WP CLI executable (wp or wp-cli). Check your PATH or explicitely set the path to the executable with “%1”.</source>
-        <oldsource>Can not find WP CLI executable. Check your PATH or explicitely set the path to the executable with “%1”.</oldsource>
+        <oldsource>Can not find WP CLI executable (wp or wp-cli). Check your PATH or explicitely set the path to the executable
+</oldsource>
         <extracomment>Error message, %1 will be replaced with a CLI option name like --wp-cli</extracomment>
-        <translation>Konnte die ausführbare WP-CLI-Datei (wp oder wp-cli) nicht finden. Prüfen Sie Ihre PATH-Variable oder setzen Sie den Pfad zur ausführebaren Datei explizit mit „%1“.</translation>
+        <translation type="unfinished">Konnte die ausführbare WP-CLI-Datei (wp oder wp-cli) nicht finden. Prüfen Sie Ihre PATH-Variable oder setzen Sie den Pfad zur ausführebaren Datei explizit mit „%1“.</translation>
     </message>
     <message id="qwpup_err_invalid_tmp_dir">
         <source>Failed to create temporary directory: %1</source>
@@ -163,6 +164,11 @@
         <source>Do not perform the real actions.</source>
         <extracomment>Option description in the CLI help</extracomment>
         <translation>Führe keine echten Aktionen durch.</translation>
+    </message>
+    <message id="qwpup_cli_opt_stats">
+        <source>Write stats to file at path or stdout.</source>
+        <extracomment>Option description in the CLI help</extracomment>
+        <translation type="unfinished"></translation>
     </message>
     <message id="qwpup_info_perform_dry_run">
         <source>Doing dry run without performing real actions.</source>

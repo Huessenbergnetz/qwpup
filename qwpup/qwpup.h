@@ -21,6 +21,7 @@
 
 class QProcess;
 class QTemporaryDir;
+class WP;
 
 class QWpUp : public QObject
 {
@@ -51,15 +52,15 @@ private slots:
 
 private:
     void handleError(const QString &msg, Error exitCode);
-    QProcess *wpProcess(const QStringList &arguments);
-    QProcess *wpGetOption(const QString &name);
+    WP *wpProcess(const QStringList &arguments);
+    WP *wpGetOption(const QString &name);
     Answer askYesNoCancel(const QString &question);
     Answer askYesNo(const QString &question);
     [[nodiscard]] QStringList getAssets(const QString &basePath) const;
     [[nodiscard]] QStringList getPluginAssets(const QString &name) const;
     [[nodiscard]] QStringList getThemeAssets(const QString &name) const;
     [[nodiscard]] QStringList getAllAssets() const;
-    [[nodiscard]] std::expected<QJsonArray, QString> getJsonArray(QProcess *p) const;
+    [[nodiscard]] std::expected<QJsonArray, QString> getJsonArray(const QByteArray &ba) const;
 
     void setCoreStat(QLatin1StringView key, const QJsonValue &val);
     void addPuginStat(QLatin1StringView key, const QJsonObject &val);

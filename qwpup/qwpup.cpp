@@ -6,6 +6,7 @@
 #include "qwpup.h"
 
 #include "utils.h"
+#include "wp.h"
 
 #include <brotli/encode.h>
 #include <chrono>
@@ -223,8 +224,8 @@ Error QWpUp::start(const QStringList &arguments)
     }
     if (m_wpPath.isEmpty()) {
         //: Error message, %1 will be replaced with a CLI option name like --wp-cli
-        //% "Can not find WP CLI executable (wp or wp-cli). Check your PATH or explicitely set the path to the executable
-        // with “%1”."
+        //% "Can not find WP CLI executable (wp or wp-cli). Check your PATH or explicitely set the path to the executable "
+        //% "with “%1”."
         qCritical().noquote() << qtTrId("qwpup_err_wp_exe_not_found").arg(u"--wp-cli"_s);
         return Error::Config;
     }
@@ -310,44 +311,44 @@ void QWpUp::getBlogName()
 void QWpUp::getCurrentVersion()
 {
     auto wp = wpProcess({u"core"_s, u"version"_s});
-    connect(wp, &QProcess::finished, this, [this, wp](int exitCode, QProcess::ExitStatus exitStatus) {
-        wp->deleteLater();
-        if (exitStatus == QProcess::NormalExit && exitCode == 0) {
-            m_currentCoreVersion = QString::fromLocal8Bit(wp->readAllStandardOutput()).trimmed();
-            if (m_logLevel == QtDebugMsg) {
-                showVersionInfo();
-            } else {
-                //: Info message, %1 will be replaced by the version string like 6.8.3
-                //% "Current WordPress core version: %1"
-                qInfo().noquote() << qtTrId("qwpup_inf_cur_wp_core_version").arg(m_currentCoreVersion);
-                listCoreVersions();
-            }
+
+    connect(wp, &WP::succeeded, this, [this](const QByteArray &data) {
+        m_currentCoreVersion = QString::fromLocal8Bit(data);
+        if (m_logLevel == QtDebugMsg) {
+            QTimer::singleShot(0, this, &QWpUp::showVersionInfo);
         } else {
-            const auto error = QString::fromLocal8Bit(wp->readAllStandardError().trimmed());
-            m_stats.insert("error"_L1, error);
-            qCritical().noquote() << error;
-            //% "Failed to get version information."
-            handleError(qtTrId("qwpup_err_wp_version_info_failed"), Error::Internal);
+            //: Info message, %1 will be replaced by the version string like 6.8.3
+            //% "Current WordPress core version: %1"
+            qInfo().noquote() << qtTrId("qwpup_inf_cur_wp_core_version").arg(m_currentCoreVersion);
+            QTimer::singleShot(0, this, &QWpUp::listCoreVersions);
         }
     });
+
+    connect(wp, &WP::failed, this, [this](const QString &error) {
+        m_stats.insert("error"_L1, error);
+        qCritical().noquote() << error;
+        //% "Failed to get version information."
+        handleError(qtTrId("qwpup_err_wp_version_info_failed"), Error::Internal);
+    });
+
     wp->start();
 }
 
 void QWpUp::showVersionInfo()
 {
     auto wp = wpProcess({u"core"_s, u"version"_s, u"--extra"_s});
-    connect(wp, &QProcess::finished, this, [this, wp](int exitCode, QProcess::ExitStatus exitStatus) {
-        wp->deleteLater();
-        if (exitStatus == QProcess::NormalExit && exitCode == 0) {
-            qDebug().noquote() << wp->readAllStandardOutput().trimmed();
-            listCoreVersions();
-        } else {
-            const auto error = QString::fromLocal8Bit(wp->readAllStandardError().trimmed());
-            m_stats.insert("error"_L1, error);
-            qCritical().noquote() << error;
-            handleError(qtTrId("qwpup_err_wp_version_info_failed"), Error::Internal);
-        }
+
+    connect(wp, &WP::succeeded, this, [this](const QByteArray &data) {
+        qDebug().noquote() << data;
+        QTimer::singleShot(0, this, &QWpUp::listCoreVersions);
     });
+
+    connect(wp, &WP::failed, this, [this](const QString &error) {
+        m_stats.insert("error"_L1, error);
+        qCritical().noquote() << error;
+        handleError(qtTrId("qwpup_err_wp_version_info_failed"), Error::Internal);
+    });
+
     wp->start();
 }
 
@@ -355,58 +356,57 @@ void QWpUp::listCoreVersions()
 {
     //% "Checking for core updates."
     qInfo().noquote() << qtTrId("qwpup_info_check_core_updates");
+
     auto wp = wpProcess({u"core"_s, u"check-update"_s, u"--format=json"_s});
-    connect(wp, &QProcess::finished, this, [this, wp](int exitCode, QProcess::ExitStatus exitStatus) {
-        wp->deleteLater();
-        if (exitStatus == QProcess::NormalExit && exitCode == 0) {
 
-            const auto array = getJsonArray(wp);
-            if (!array) {
-                m_stats.insert("error"_L1, array.error());
-                handleError(array.error(), Error::Internal);
-                return;
+    connect(wp, &WP::succeeded, this, [this](const QByteArray &data) {
+        const auto array = getJsonArray(data);
+        if (!array) {
+            m_stats.insert("error"_L1, array.error());
+            handleError(array.error(), Error::Internal);
+            return;
+        }
+
+        if (array->isEmpty()) {
+            //% "No core updates available."
+            qInfo().noquote() << qtTrId("qpwup_info_no_core_ups_avail");
+            QTimer::singleShot(0, this, &QWpUp::checkPluginUpdates);
+            return;
+        }
+
+        for (const auto &v : *array) {
+            const auto o          = v.toObject();
+            const auto updateType = o.value("update_type"_L1).toString();
+            if (updateType == "minor"_L1) {
+                m_minCoreUpAvail      = true;
+                m_availMinCoreVersion = o.value("version"_L1).toString();
+                //% "New minor core version available: %1"
+                qInfo().noquote() << qtTrId("qwpup_inf_min_core_ver_avail").arg(m_availMinCoreVersion);
             }
-
-            if (array->isEmpty()) {
-                //% "No core updates available."
-                qInfo().noquote() << qtTrId("qpwup_info_no_core_ups_avail");
-                QTimer::singleShot(0, this, &QWpUp::checkPluginUpdates);
-                return;
+            if (updateType == "major"_L1) {
+                m_majCoreUpAvail      = true;
+                m_availMajCoreVersion = o.value("version"_L1).toString();
+                //% "New major core version available: %1"
+                qInfo().noquote() << qtTrId("qwpup_inf_maj_core_ver_avail").arg(m_availMajCoreVersion);
             }
+        }
 
-            for (const auto &v : *array) {
-                const auto o          = v.toObject();
-                const auto updateType = o.value("update_type"_L1).toString();
-                if (updateType == "minor"_L1) {
-                    m_minCoreUpAvail      = true;
-                    m_availMinCoreVersion = o.value("version"_L1).toString();
-                    //% "New minor core version available: %1"
-                    qInfo().noquote() << qtTrId("qwpup_inf_min_core_ver_avail").arg(m_availMinCoreVersion);
-                }
-                if (updateType == "major"_L1) {
-                    m_majCoreUpAvail      = true;
-                    m_availMajCoreVersion = o.value("version"_L1).toString();
-                    //% "New major core version available: %1"
-                    qInfo().noquote() << qtTrId("qwpup_inf_maj_core_ver_avail").arg(m_availMajCoreVersion);
-                }
-            }
-
-            if ((!m_wpUpMajor && m_minCoreUpAvail) || (m_wpUpMajor && m_majCoreUpAvail)) {
-                QTimer::singleShot(0, this, &QWpUp::updateCore);
-            } else {
-                //% "Skipping major core update."
-                qInfo().noquote() << qtTrId("qwpup_info_skip_major_core_update");
-                QTimer::singleShot(0, this, &QWpUp::checkPluginUpdates);
-            }
-
+        if ((!m_wpUpMajor && m_minCoreUpAvail) || (m_wpUpMajor && m_majCoreUpAvail)) {
+            QTimer::singleShot(0, this, &QWpUp::updateCore);
         } else {
-            const auto error = QString::fromLocal8Bit(wp->readAllStandardError().trimmed());
-            m_stats.insert("error"_L1, error);
-            qCritical().noquote() << error;
-            //% "Failed to check for core updates."
-            handleError(qtTrId("qwpup_err_ep_core_up_check_failed"), Error::Internal);
+            //% "Skipping major core update."
+            qInfo().noquote() << qtTrId("qwpup_info_skip_major_core_update");
+            QTimer::singleShot(0, this, &QWpUp::checkPluginUpdates);
         }
     });
+
+    connect(wp, &WP::failed, this, [this](const QString &error) {
+        m_stats.insert("error"_L1, error);
+        qCritical().noquote() << error;
+        //% "Failed to check for core updates."
+        handleError(qtTrId("qwpup_err_ep_core_up_check_failed"), Error::Internal);
+    });
+
     wp->start();
 }
 
@@ -445,20 +445,20 @@ void QWpUp::updateCore()
     }
 
     auto wp = wpProcess(args);
-    connect(wp, &QProcess::finished, this, [this, wp, targetVersion](int exitCode, QProcess::ExitStatus exitStatus) {
-        wp->deleteLater();
-        if (exitStatus == QProcess::NormalExit && exitCode == 0) {
-            qInfo().noquote() << qtTrId("qwpup_infi_update_core_success").arg(m_currentCoreVersion, targetVersion);
-            m_coreUpdated = true;
-            QTimer::singleShot(0, this, &QWpUp::checkPluginUpdates);
-        } else {
-            const auto error = QString::fromLocal8Bit(wp->readAllStandardError().trimmed());
-            m_stats.insert("error"_L1, error);
-            qCritical().noquote() << error;
-            //% "Failed to update WordPress core."
-            handleError(qtTrId("qwpup_err_wp_core_update_failed"), Error::Internal);
-        }
+
+    connect(wp, &WP::succeeded, this, [this, targetVersion]() {
+        qInfo().noquote() << qtTrId("qwpup_infi_update_core_success").arg(m_currentCoreVersion, targetVersion);
+        m_coreUpdated = true;
+        QTimer::singleShot(0, this, &QWpUp::checkPluginUpdates);
     });
+
+    connect(wp, &WP::failed, this, [this](const QString &error) {
+        m_stats.insert("error"_L1, error);
+        qCritical().noquote() << error;
+        //% "Failed to update WordPress core."
+        handleError(qtTrId("qwpup_err_wp_core_update_failed"), Error::Internal);
+    });
+
     wp->start();
 }
 
@@ -468,139 +468,135 @@ void QWpUp::checkPluginUpdates()
     qInfo().noquote() << qtTrId("qwpup_info_check_plugin_updates");
 
     auto wp = wpProcess({u"plugin"_s, u"list"_s, u"--update=available"_s, u"--format=json"_s});
-    connect(wp, &QProcess::finished, this, [this, wp](int exitCode, QProcess::ExitStatus exitStatus) {
-        wp->deleteLater();
 
-        if (exitStatus == QProcess::NormalExit && exitCode == 0) {
+    connect(wp, &WP::succeeded, this, [this](const QByteArray &data) {
+        const auto array = getJsonArray(data);
+        if (!array) {
+            qWarning().noquote() << array.error();
+            QTimer::singleShot(0, this, &QWpUp::checkThemeUpdates);
+            return;
+        }
 
-            const auto array = getJsonArray(wp);
-            if (!array) {
-                qWarning().noquote() << array.error();
-                QTimer::singleShot(0, this, &QWpUp::checkThemeUpdates);
-                return;
-            }
+        if (array->empty()) {
+            //% "No plugin updates available."
+            qInfo().noquote() << qtTrId("qwpup_info_no_plug_ups_avail");
+            QTimer::singleShot(0, this, &QWpUp::checkThemeUpdates);
+            return;
+        }
 
-            if (array->empty()) {
-                //% "No plugin updates available."
-                qInfo().noquote() << qtTrId("qwpup_info_no_plug_ups_avail");
-                QTimer::singleShot(0, this, &QWpUp::checkThemeUpdates);
-                return;
-            }
+        QList<QJsonObject> pluginsWithUpdates;
 
-            QList<QJsonObject> pluginsWithUpdates;
-
-            for (const auto &v : *array) {
-                const auto o = v.toObject();
+        for (const auto &v : *array) {
+            const auto o = v.toObject();
 #if QT_VERSION >= QT_VERSION_CHECK(6, 10, 0)
-                const auto curVer = QVersionNumber::fromString(o.value("version"_L1).toStringView()).normalized();
-                const auto updVer = QVersionNumber::fromString(o.value("update_version"_L1).toStringView()).normalized();
+            const auto curVer = QVersionNumber::fromString(o.value("version"_L1).toStringView()).normalized();
+            const auto updVer = QVersionNumber::fromString(o.value("update_version"_L1).toStringView()).normalized();
 #else
-                const auto curVer = QVersionNumber::fromString(o.value("version"_L1).toString()).normalized();
-                const auto updVer = QVersionNumber::fromString(o.value("update_version"_L1).toString()).normalized();
+            const auto curVer = QVersionNumber::fromString(o.value("version"_L1).toString()).normalized();
+            const auto updVer = QVersionNumber::fromString(o.value("update_version"_L1).toString()).normalized();
 #endif
-                const auto commonPrefix = QVersionNumber::commonPrefix(curVer, updVer);
+            const auto commonPrefix = QVersionNumber::commonPrefix(curVer, updVer);
 
-                // NOLINTNEXTLINE(bugprone-branch-clone)
-                if (m_plugsUpVersion == VersionPart::Patch) {
-                    if (commonPrefix.segmentCount() >= 2) {
-                        pluginsWithUpdates.append(o); // clazy:exclude=reserve-candidates
-                        m_pluginsToUpdate.enqueue(o);
-                    } else {
-                        m_skippedPlugins.append(v);
-                    }
-                } else if (m_plugsUpVersion == VersionPart::Minor) {
-                    if (commonPrefix.segmentCount() >= 1) {
-                        pluginsWithUpdates.append(o); // clazy:exclude=reserve-candidates
-                        m_pluginsToUpdate.enqueue(o);
-                    } else {
-                        m_skippedPlugins.append(v);
-                    }
-                } else {
+            // NOLINTNEXTLINE(bugprone-branch-clone)
+            if (m_plugsUpVersion == VersionPart::Patch) {
+                if (commonPrefix.segmentCount() >= 2) {
                     pluginsWithUpdates.append(o); // clazy:exclude=reserve-candidates
                     m_pluginsToUpdate.enqueue(o);
-                }
-            }
-
-            if (m_logLevel == QtDebugMsg) {
-
-                //: Used when no updates for e.g. plugins and themes are available, in
-                //: a form like "Available plugin updates: none"
-                //% "none"
-                const QString none = qtTrId("qwpup_info_updates_none");
-
-                if (!pluginsWithUpdates.empty()) {
-                    for (const auto &o : std::as_const(pluginsWithUpdates)) {
-                        const auto name          = o.value("name"_L1).toString();
-                        const auto version       = o.value("version"_L1).toString();
-                        const auto updateVersion = o.value("update_version"_L1).toString();
-                        //: %1 will be replaced by the plugin name, %2 by the current version, %3 by the udpate version
-                        //% "Available plugin update: %1 %2 => %3"
-                        qDebug().noquote() << qtTrId("qwpup_dbg_avail_plug_up").arg(name, version, updateVersion);
-                    }
                 } else {
-                    //: %1 will be replaced by a comma separated list of plugin updates or "none".
-                    //% "Available plugin updates: %1."
-                    qDebug().noquote() << qtTrId("qwpup_info_avail_plug_ups").arg(none);
+                    m_skippedPlugins.append(v);
                 }
-
-                if (!m_skippedPlugins.empty()) {
-                    for (const auto &v : std::as_const(m_skippedPlugins)) {
-                        const auto o             = v.toObject();
-                        const auto name          = o.value("name"_L1).toString();
-                        const auto version       = o.value("version"_L1).toString();
-                        const auto updateVersion = o.value("update_version"_L1).toString();
-                        //: %1 will be replaced by the plugin name, %2 by the current version, %3 by the udpate version
-                        //% "Skipped plugin update: %1 %2 => %3"
-                        qDebug().noquote() << qtTrId("qwpup_dbg_skipped_plug_up").arg(name, version, updateVersion);
-                    }
+            } else if (m_plugsUpVersion == VersionPart::Minor) {
+                if (commonPrefix.segmentCount() >= 1) {
+                    pluginsWithUpdates.append(o); // clazy:exclude=reserve-candidates
+                    m_pluginsToUpdate.enqueue(o);
                 } else {
-                    //: %1 will be replaced by a comma separated list of plugin updates.
-                    //% "Skipped plugin updates: %1."
-                    qDebug().noquote() << qtTrId("qwpup_info_skip_plug_ups").arg(none);
+                    m_skippedPlugins.append(v);
                 }
-
-            } else if (m_logLevel == QtInfoMsg) {
-
-                const QString none = qtTrId("qwpup_info_updates_none");
-
-                if (!pluginsWithUpdates.empty()) {
-                    QStringList availUpdates;
-                    availUpdates.reserve(pluginsWithUpdates.size());
-                    for (const auto &o : std::as_const(pluginsWithUpdates)) {
-                        availUpdates << o.value("name"_L1).toString();
-                    }
-                    qInfo().noquote() << qtTrId("qwpup_info_avail_plug_ups").arg(m_locale.createSeparatedList(availUpdates));
-                } else {
-                    qInfo().noquote() << qtTrId("qwpup_info_avail_plug_ups").arg(none);
-                }
-
-                if (!m_skippedPlugins.empty()) {
-                    QStringList skippedUpdates;
-                    skippedUpdates.reserve(m_skippedPlugins.size());
-                    for (const auto &v : std::as_const(m_skippedPlugins)) {
-                        skippedUpdates << v.toObject().value("name"_L1).toString();
-                    }
-                    qInfo().noquote()
-                        << qtTrId("qwpup_info_skip_plug_ups").arg(m_locale.createSeparatedList(skippedUpdates));
-                } else {
-                    qInfo().noquote() << qtTrId("qwpup_info_skip_plug_ups").arg(none);
-                }
-            }
-
-            if (m_pluginsToUpdate.isEmpty()) {
-                QTimer::singleShot(0, this, &QWpUp::checkThemeUpdates);
             } else {
-                QTimer::singleShot(0, this, &QWpUp::updatePlugin);
+                pluginsWithUpdates.append(o); // clazy:exclude=reserve-candidates
+                m_pluginsToUpdate.enqueue(o);
+            }
+        }
+
+        if (m_logLevel == QtDebugMsg) {
+
+            //: Used when no updates for e.g. plugins and themes are available, in
+            //: a form like "Available plugin updates: none"
+            //% "none"
+            const QString none = qtTrId("qwpup_info_updates_none");
+
+            if (!pluginsWithUpdates.empty()) {
+                for (const auto &o : std::as_const(pluginsWithUpdates)) {
+                    const auto name          = o.value("name"_L1).toString();
+                    const auto version       = o.value("version"_L1).toString();
+                    const auto updateVersion = o.value("update_version"_L1).toString();
+                    //: %1 will be replaced by the plugin name, %2 by the current version, %3 by the udpate version
+                    //% "Available plugin update: %1 %2 => %3"
+                    qDebug().noquote() << qtTrId("qwpup_dbg_avail_plug_up").arg(name, version, updateVersion);
+                }
+            } else {
+                //: %1 will be replaced by a comma separated list of plugin updates or "none".
+                //% "Available plugin updates: %1."
+                qDebug().noquote() << qtTrId("qwpup_info_avail_plug_ups").arg(none);
             }
 
-        } else {
+            if (!m_skippedPlugins.empty()) {
+                for (const auto &v : std::as_const(m_skippedPlugins)) {
+                    const auto o             = v.toObject();
+                    const auto name          = o.value("name"_L1).toString();
+                    const auto version       = o.value("version"_L1).toString();
+                    const auto updateVersion = o.value("update_version"_L1).toString();
+                    //: %1 will be replaced by the plugin name, %2 by the current version, %3 by the udpate version
+                    //% "Skipped plugin update: %1 %2 => %3"
+                    qDebug().noquote() << qtTrId("qwpup_dbg_skipped_plug_up").arg(name, version, updateVersion);
+                }
+            } else {
+                //: %1 will be replaced by a comma separated list of plugin updates.
+                //% "Skipped plugin updates: %1."
+                qDebug().noquote() << qtTrId("qwpup_info_skip_plug_ups").arg(none);
+            }
 
-            qWarning().noquote() << wp->readAllStandardError().trimmed();
-            //% "Failed to check for plugin updates."
-            qWarning().noquote() << qtTrId("qwpup_err_plug_check_failed");
+        } else if (m_logLevel == QtInfoMsg) {
+
+            const QString none = qtTrId("qwpup_info_updates_none");
+
+            if (!pluginsWithUpdates.empty()) {
+                QStringList availUpdates;
+                availUpdates.reserve(pluginsWithUpdates.size());
+                for (const auto &o : std::as_const(pluginsWithUpdates)) {
+                    availUpdates << o.value("name"_L1).toString();
+                }
+                qInfo().noquote() << qtTrId("qwpup_info_avail_plug_ups").arg(m_locale.createSeparatedList(availUpdates));
+            } else {
+                qInfo().noquote() << qtTrId("qwpup_info_avail_plug_ups").arg(none);
+            }
+
+            if (!m_skippedPlugins.empty()) {
+                QStringList skippedUpdates;
+                skippedUpdates.reserve(m_skippedPlugins.size());
+                for (const auto &v : std::as_const(m_skippedPlugins)) {
+                    skippedUpdates << v.toObject().value("name"_L1).toString();
+                }
+                qInfo().noquote() << qtTrId("qwpup_info_skip_plug_ups").arg(m_locale.createSeparatedList(skippedUpdates));
+            } else {
+                qInfo().noquote() << qtTrId("qwpup_info_skip_plug_ups").arg(none);
+            }
+        }
+
+        if (m_pluginsToUpdate.isEmpty()) {
             QTimer::singleShot(0, this, &QWpUp::checkThemeUpdates);
+        } else {
+            QTimer::singleShot(0, this, &QWpUp::updatePlugin);
         }
     });
+
+    connect(wp, &WP::failed, this, [this](const QString &error) {
+        qWarning().noquote() << error;
+        //% "Failed to check for plugin updates."
+        qWarning().noquote() << qtTrId("qwpup_err_plug_check_failed");
+        QTimer::singleShot(0, this, &QWpUp::checkThemeUpdates);
+    });
+
     wp->start();
 }
 
@@ -716,71 +712,67 @@ void QWpUp::updatePlugin()
     }
 
     auto wp = wpProcess(args);
-    connect(wp,
-            &QProcess::finished,
-            this,
-            [this, wp, o, name, version, updateVersion](int exitCode, QProcess::ExitStatus exitStatus) {
-        wp->deleteLater();
-        if (exitStatus == QProcess::NormalExit && exitCode == 0) {
-            m_updatedPlugins.append(o);
 
-            //: %1 will be replaced by the plugin’s name, %2 by the current version
-            //: and %3 by the update version
-            //% "Successfully updated plugin %1 from version %2 to %3."
-            qInfo().noquote() << qtTrId("qwpup_info_plug_up_success").arg(name, version, updateVersion);
+    connect(wp, &WP::succeeded, this, [this, o, name, version, updateVersion]() {
+        m_updatedPlugins.append(o);
 
-            if (m_coreUpdated || m_dryRun || m_skipCompression) {
-                QTimer::singleShot(0, this, &QWpUp::updatePlugin);
-                return;
-            }
+        //: %1 will be replaced by the plugin’s name, %2 by the current version
+        //: and %3 by the update version
+        //% "Successfully updated plugin %1 from version %2 to %3."
+        qInfo().noquote() << qtTrId("qwpup_info_plug_up_success").arg(name, version, updateVersion);
 
-            const QStringList assets = getPluginAssets(name);
-
-            if (assets.empty()) {
-                QTimer::singleShot(0, this, &QWpUp::updatePlugin);
-                return;
-            }
-
-            //: %1 will be replaced by the plugin name
-            //% "Start compressing assets for plugin %1."
-            qInfo().noquote() << qtTrId("qwpup_info_plug_compr_assets").arg(name);
-
-            auto watcher = new QFutureWatcher<QString>(this); // NOLINT(cppcoreguidelines-owning-memory)
-            const auto start{std::chrono::steady_clock::now()};
-            connect(watcher, &QFutureWatcher<QString>::finished, this, [this, name, watcher, start]() {
-                const auto end{std::chrono::steady_clock::now()};
-                watcher->deleteLater();
-                const std::chrono::nanoseconds duration{end - start};
-                //: %1 will be replaced by the plugin name, %2 by the duration
-                //: the compression took in miliseconds
-                //% "Finished compressing assets for plugin %1 in %2 ms."
-                qInfo().noquote() << qtTrId("qwpup_info_plug_compr_assets_finished")
-                                         .arg(name,
-                                              m_locale.toString(
-                                                  std::chrono::duration_cast<std::chrono::milliseconds>(duration).count()));
-                QTimer::singleShot(0, this, &QWpUp::updatePlugin);
-            });
-            auto future = QtConcurrent::mapped(assets, compressAsset);
-            if (future.isFinished()) {
-                watcher->deleteLater();
-                QTimer::singleShot(0, this, &QWpUp::updatePlugin);
-            } else {
-                watcher->setFuture(future);
-            }
-
-        } else {
-            const QString error = QString::fromLocal8Bit(wp->readAllStandardError().trimmed());
-            QJsonObject _o      = o;
-            _o.insert("error"_L1, error);
-            m_failedPlugins.append(_o);
-            qWarning().noquote() << error;
-            //: %1 will be replaced by the plugin’s name, %2 by the current version
-            //: and %3 by the update version
-            //% "Failed to update plugin %1 from version %2 to %3."
-            qWarning().noquote() << qtTrId("qwpup_err_plug_up_failed").arg(name, version, updateVersion);
+        if (m_coreUpdated || m_dryRun || m_skipCompression) {
             QTimer::singleShot(0, this, &QWpUp::updatePlugin);
+            return;
+        }
+
+        const QStringList assets = getPluginAssets(name);
+
+        if (assets.empty()) {
+            QTimer::singleShot(0, this, &QWpUp::updatePlugin);
+            return;
+        }
+
+        //: %1 will be replaced by the plugin name
+        //% "Start compressing assets for plugin %1."
+        qInfo().noquote() << qtTrId("qwpup_info_plug_compr_assets").arg(name);
+
+        auto watcher = new QFutureWatcher<QString>(this); // NOLINT(cppcoreguidelines-owning-memory)
+        const auto start{std::chrono::steady_clock::now()};
+        connect(watcher, &QFutureWatcher<QString>::finished, this, [this, name, watcher, start]() {
+            const auto end{std::chrono::steady_clock::now()};
+            watcher->deleteLater();
+            const std::chrono::nanoseconds duration{end - start};
+            //: %1 will be replaced by the plugin name, %2 by the duration
+            //: the compression took in miliseconds
+            //% "Finished compressing assets for plugin %1 in %2 ms."
+            qInfo().noquote() << qtTrId("qwpup_info_plug_compr_assets_finished")
+                                     .arg(name,
+                                          m_locale.toString(
+                                              std::chrono::duration_cast<std::chrono::milliseconds>(duration).count()));
+            QTimer::singleShot(0, this, &QWpUp::updatePlugin);
+        });
+        auto future = QtConcurrent::mapped(assets, compressAsset);
+        if (future.isFinished()) {
+            watcher->deleteLater();
+            QTimer::singleShot(0, this, &QWpUp::updatePlugin);
+        } else {
+            watcher->setFuture(future);
         }
     });
+
+    connect(wp, &WP::failed, this, [this, o, name, version, updateVersion](const QString &error) {
+        QJsonObject _o = o;
+        _o.insert("error"_L1, error);
+        m_failedPlugins.append(_o);
+        qWarning().noquote() << error;
+        //: %1 will be replaced by the plugin’s name, %2 by the current version
+        //: and %3 by the update version
+        //% "Failed to update plugin %1 from version %2 to %3."
+        qWarning().noquote() << qtTrId("qwpup_err_plug_up_failed").arg(name, version, updateVersion);
+        QTimer::singleShot(0, this, &QWpUp::updatePlugin);
+    });
+
     wp->start();
 }
 
@@ -790,136 +782,131 @@ void QWpUp::checkThemeUpdates()
     qInfo().noquote() << qtTrId("qwpup_info_check_theme_updates");
 
     auto wp = wpProcess({u"theme"_s, u"list"_s, u"--update=available"_s, u"--format=json"_s});
-    connect(wp, &QProcess::finished, this, [this, wp](int exitCode, QProcess::ExitStatus exitStatus) {
-        wp->deleteLater();
 
-        if (exitStatus == QProcess::NormalExit && exitCode == 0) {
+    connect(wp, &WP::succeeded, this, [this](const QByteArray &data) {
+        const auto array = getJsonArray(data);
+        if (!array) {
+            qWarning().noquote() << array.error();
+            QTimer::singleShot(0, this, &QWpUp::checkCoreTranslations);
+            return;
+        }
 
-            const auto array = getJsonArray(wp);
-            if (!array) {
-                qWarning().noquote() << array.error();
-                QTimer::singleShot(0, this, &QWpUp::checkCoreTranslations);
-                return;
-            }
+        if (array->isEmpty()) {
+            //% "No theme updates available."
+            qInfo().noquote() << qtTrId("qwpup_info_no_theme_ups_avail");
+            QTimer::singleShot(0, this, &QWpUp::checkCoreTranslations);
+            return;
+        }
 
-            if (array->isEmpty()) {
-                //% "No theme updates available."
-                qInfo().noquote() << qtTrId("qwpup_info_no_theme_ups_avail");
-                QTimer::singleShot(0, this, &QWpUp::checkCoreTranslations);
-                return;
-            }
+        QList<QJsonObject> themesWithUpdates;
 
-            QList<QJsonObject> themesWithUpdates;
-
-            for (const auto &v : *array) {
-                const auto o = v.toObject();
+        for (const auto &v : *array) {
+            const auto o = v.toObject();
 #if QT_VERSION >= QT_VERSION_CHECK(6, 10, 0)
-                const auto curVer = QVersionNumber::fromString(o.value("version"_L1).toStringView()).normalized();
-                const auto updVer = QVersionNumber::fromString(o.value("update_version"_L1).toStringView()).normalized();
+            const auto curVer = QVersionNumber::fromString(o.value("version"_L1).toStringView()).normalized();
+            const auto updVer = QVersionNumber::fromString(o.value("update_version"_L1).toStringView()).normalized();
 #else
-                const auto curVer = QVersionNumber::fromString(o.value("version"_L1).toString()).normalized();
-                const auto updVer = QVersionNumber::fromString(o.value("update_version"_L1).toString()).normalized();
+            const auto curVer = QVersionNumber::fromString(o.value("version"_L1).toString()).normalized();
+            const auto updVer = QVersionNumber::fromString(o.value("update_version"_L1).toString()).normalized();
 #endif
-                const auto comPref = QVersionNumber::commonPrefix(curVer, updVer);
+            const auto comPref = QVersionNumber::commonPrefix(curVer, updVer);
 
-                if (m_themesUpVersion == VersionPart::Patch) {
-                    if (comPref.segmentCount() >= 2) {
-                        themesWithUpdates.append(o); // clazy:exclude=reserve-candidates
-                        m_themesToUpdate.enqueue(o);
-                    } else {
-                        m_skippedThemes.append(v);
-                    }
-                } else if (m_themesUpVersion == VersionPart::Minor) {
-                    if (comPref.segmentCount() >= 1) {
-                        themesWithUpdates.append(o); // clazy:exclude=reserve-candidates
-                        m_themesToUpdate.enqueue(o);
-                    } else {
-                        m_skippedThemes.append(v);
-                    }
-                } else {
+            if (m_themesUpVersion == VersionPart::Patch) {
+                if (comPref.segmentCount() >= 2) {
                     themesWithUpdates.append(o); // clazy:exclude=reserve-candidates
                     m_themesToUpdate.enqueue(o);
-                }
-            }
-
-            if (m_logLevel == QtDebugMsg) {
-
-                const QString none = qtTrId("qwpup_info_updates_none");
-
-                if (!themesWithUpdates.empty()) {
-                    for (const auto &o : std::as_const(themesWithUpdates)) {
-                        const auto name   = o.value("name"_L1).toString();
-                        const auto curVer = o.value("version"_L1).toString();
-                        const auto updVer = o.value("update_version"_L1).toString();
-                        //: %1 will be replaced by the theme name, %2 by the current version, %3 by the update version
-                        //% "Available theme update: %1 %2 => %3"
-                        qDebug().noquote() << qtTrId("qwpup_dbg_avail_theme_up").arg(name, curVer, updVer);
-                    }
                 } else {
-                    //: %1 will be replaced by a comma separated list of theme updates or "none".
-                    //% "Available theme updates: %1."
-                    qDebug().noquote() << qtTrId("qwpup_info_avail_theme_ups").arg(none);
+                    m_skippedThemes.append(v);
                 }
-
-                if (!m_skippedThemes.empty()) {
-                    for (const auto &v : std::as_const(m_skippedThemes)) {
-                        const auto o      = v.toObject();
-                        const auto name   = o.value("name"_L1).toString();
-                        const auto curVer = o.value("version"_L1).toString();
-                        const auto updVer = o.value("update_version"_L1).toString();
-                        //: %1 will be replaced by the theme name, %2 by the current version, %3 by the update version
-                        //% "Skipped theme update: %1 %2 => %3"
-                        qDebug().noquote() << qtTrId("qwpup_dbg_skipped_theme_up").arg(name, curVer, updVer);
-                    }
+            } else if (m_themesUpVersion == VersionPart::Minor) {
+                if (comPref.segmentCount() >= 1) {
+                    themesWithUpdates.append(o); // clazy:exclude=reserve-candidates
+                    m_themesToUpdate.enqueue(o);
                 } else {
-                    //: %1 will be replaced by a comma separated list of theme updates.
-                    //% "Skipped theme updates: %1."
-                    qDebug().noquote() << qtTrId("qwpup_info_skip_theme_ups").arg(none);
+                    m_skippedThemes.append(v);
                 }
-
-            } else if (m_logLevel == QtInfoMsg) {
-
-                const QString none = qtTrId("qwpup_info_updates_none");
-
-                if (!themesWithUpdates.empty()) {
-                    QStringList availUpdates;
-                    availUpdates.reserve(themesWithUpdates.size());
-                    for (const auto &o : std::as_const(themesWithUpdates)) {
-                        availUpdates << o.value("name"_L1).toString();
-                    }
-                    qInfo().noquote()
-                        << qtTrId("qwpup_info_avail_theme_ups").arg(m_locale.createSeparatedList(availUpdates));
-                } else {
-                    qInfo().noquote() << qtTrId("qwpup_info_avail_theme_ups").arg(none);
-                }
-
-                if (!m_skippedThemes.empty()) {
-                    QStringList skippedUpdates;
-                    skippedUpdates.reserve(m_skippedThemes.size());
-                    for (const auto &v : std::as_const(m_skippedThemes)) {
-                        skippedUpdates << v.toObject().value("name"_L1).toString();
-                    }
-                    qInfo().noquote()
-                        << qtTrId("qwpup_info_skip_theme_ups").arg(m_locale.createSeparatedList(skippedUpdates));
-                } else {
-                    qDebug().noquote() << qtTrId("qwpup_info_skip_theme_ups").arg(none);
-                }
-            }
-
-            if (m_themesToUpdate.empty()) {
-                QTimer::singleShot(0, this, &QWpUp::checkCoreTranslations);
             } else {
-                QTimer::singleShot(0, this, &QWpUp::updateTheme);
+                themesWithUpdates.append(o); // clazy:exclude=reserve-candidates
+                m_themesToUpdate.enqueue(o);
+            }
+        }
+
+        if (m_logLevel == QtDebugMsg) {
+
+            const QString none = qtTrId("qwpup_info_updates_none");
+
+            if (!themesWithUpdates.empty()) {
+                for (const auto &o : std::as_const(themesWithUpdates)) {
+                    const auto name   = o.value("name"_L1).toString();
+                    const auto curVer = o.value("version"_L1).toString();
+                    const auto updVer = o.value("update_version"_L1).toString();
+                    //: %1 will be replaced by the theme name, %2 by the current version, %3 by the update version
+                    //% "Available theme update: %1 %2 => %3"
+                    qDebug().noquote() << qtTrId("qwpup_dbg_avail_theme_up").arg(name, curVer, updVer);
+                }
+            } else {
+                //: %1 will be replaced by a comma separated list of theme updates or "none".
+                //% "Available theme updates: %1."
+                qDebug().noquote() << qtTrId("qwpup_info_avail_theme_ups").arg(none);
             }
 
-        } else {
+            if (!m_skippedThemes.empty()) {
+                for (const auto &v : std::as_const(m_skippedThemes)) {
+                    const auto o      = v.toObject();
+                    const auto name   = o.value("name"_L1).toString();
+                    const auto curVer = o.value("version"_L1).toString();
+                    const auto updVer = o.value("update_version"_L1).toString();
+                    //: %1 will be replaced by the theme name, %2 by the current version, %3 by the update version
+                    //% "Skipped theme update: %1 %2 => %3"
+                    qDebug().noquote() << qtTrId("qwpup_dbg_skipped_theme_up").arg(name, curVer, updVer);
+                }
+            } else {
+                //: %1 will be replaced by a comma separated list of theme updates.
+                //% "Skipped theme updates: %1."
+                qDebug().noquote() << qtTrId("qwpup_info_skip_theme_ups").arg(none);
+            }
 
-            qWarning().noquote() << wp->readAllStandardError().trimmed();
-            //% "Failed to check for theme updates."
-            qWarning().noquote() << qtTrId("qwpup_err_theme_check_failed");
+        } else if (m_logLevel == QtInfoMsg) {
+
+            const QString none = qtTrId("qwpup_info_updates_none");
+
+            if (!themesWithUpdates.empty()) {
+                QStringList availUpdates;
+                availUpdates.reserve(themesWithUpdates.size());
+                for (const auto &o : std::as_const(themesWithUpdates)) {
+                    availUpdates << o.value("name"_L1).toString();
+                }
+                qInfo().noquote() << qtTrId("qwpup_info_avail_theme_ups").arg(m_locale.createSeparatedList(availUpdates));
+            } else {
+                qInfo().noquote() << qtTrId("qwpup_info_avail_theme_ups").arg(none);
+            }
+
+            if (!m_skippedThemes.empty()) {
+                QStringList skippedUpdates;
+                skippedUpdates.reserve(m_skippedThemes.size());
+                for (const auto &v : std::as_const(m_skippedThemes)) {
+                    skippedUpdates << v.toObject().value("name"_L1).toString();
+                }
+                qInfo().noquote() << qtTrId("qwpup_info_skip_theme_ups").arg(m_locale.createSeparatedList(skippedUpdates));
+            } else {
+                qDebug().noquote() << qtTrId("qwpup_info_skip_theme_ups").arg(none);
+            }
+        }
+
+        if (m_themesToUpdate.empty()) {
             QTimer::singleShot(0, this, &QWpUp::checkCoreTranslations);
+        } else {
+            QTimer::singleShot(0, this, &QWpUp::updateTheme);
         }
     });
+
+    connect(wp, &WP::failed, this, [this](const QString &error) {
+        qWarning().noquote() << error;
+        //% "Failed to check for theme updates."
+        qWarning().noquote() << qtTrId("qwpup_err_theme_check_failed");
+        QTimer::singleShot(0, this, &QWpUp::checkCoreTranslations);
+    });
+
     wp->start();
 }
 
@@ -957,74 +944,72 @@ void QWpUp::updateTheme()
     }
 
     auto wp = wpProcess(args);
-    connect(
-        wp, &QProcess::finished, this, [this, wp, o, name, curVer, updVer](int exitCode, QProcess::ExitStatus exitStatus) {
-        wp->deleteLater();
-        if (exitStatus == QProcess::NormalExit && exitCode == 0) {
-            m_updatedThemes.append(o);
 
-            //: %1 will be replaced by the themes’s name, %2 by the current version
-            //: and %3 by the update version
-            //% "Successfully updated theme %1 from version %2 to %3."
-            qInfo().noquote() << qtTrId("qwpup_info_theme_up_success").arg(name, curVer, updVer);
+    connect(wp, &WP::succeeded, this, [this, o, name, curVer, updVer](const QByteArray &data) {
+        m_updatedThemes.append(o);
 
-            if (m_coreUpdated || m_dryRun || m_skipCompression) {
-                QTimer::singleShot(0, this, &QWpUp::updateTheme);
-                return;
-            }
+        //: %1 will be replaced by the themes’s name, %2 by the current version
+        //: and %3 by the update version
+        //% "Successfully updated theme %1 from version %2 to %3."
+        qInfo().noquote() << qtTrId("qwpup_info_theme_up_success").arg(name, curVer, updVer);
 
-            const QStringList assets = getThemeAssets(name);
-
-            if (assets.empty()) {
-                QTimer::singleShot(0, this, &QWpUp::updateTheme);
-                return;
-            }
-
-            //: %1 will be replaced by the theme name
-            //% "Start compressing assets for theme %1."
-            qInfo().noquote() << qtTrId("qwpup_info_theme_compr_assets").arg(name);
-
-            auto watcher = new QFutureWatcher<QString>(this); // NOLINT(cppcoreguidelines-owning-memory)
-            const auto start{std::chrono::steady_clock::now()};
-            connect(watcher, &QFutureWatcher<QString>::finished, this, [this, name, watcher, start]() {
-                watcher->deleteLater();
-                const auto end{std::chrono::steady_clock::now()};
-                const std::chrono::nanoseconds duration{end - start};
-                //: %1 will be replaced by the theme name, %2 by the duration
-                //: the compression took in miliseconds
-                //% "Finished compressing assets for theme %1 in %2 ms."
-                qInfo().noquote() << qtTrId("qwpup_info_theme_compr_assets_finished")
-                                         .arg(name,
-                                              m_locale.toString(
-                                                  std::chrono::duration_cast<std::chrono::milliseconds>(duration).count()));
-                QTimer::singleShot(0, this, &QWpUp::updateTheme);
-            });
-            auto future = QtConcurrent::mapped(assets, compressAsset);
-            if (future.isFinished()) {
-                watcher->deleteLater();
-                const auto end{std::chrono::steady_clock::now()};
-                const std::chrono::nanoseconds duration{end - start};
-                qInfo().noquote() << qtTrId("qwpup_info_theme_compr_assets_finished")
-                                         .arg(name,
-                                              m_locale.toString(
-                                                  std::chrono::duration_cast<std::chrono::milliseconds>(duration).count()));
-                QTimer::singleShot(0, this, &QWpUp::updateTheme);
-            } else {
-                watcher->setFuture(future);
-            }
-
-        } else {
-            const QString error = QString::fromLocal8Bit(wp->readAllStandardError().trimmed());
-            QJsonObject _o      = o;
-            _o.insert("error"_L1, error);
-            qWarning().noquote() << error;
-            //: %1 will be replaced by the plugin’s name, %2 by the current version
-            //: and %3 by the update version
-            //% "Failed to update theme %1 from version %2 to %3."
-            qWarning().noquote() << qtTrId("qwpup_err_theme_up_failed").arg(name, curVer, updVer);
+        if (m_coreUpdated || m_dryRun || m_skipCompression) {
             QTimer::singleShot(0, this, &QWpUp::updateTheme);
+            return;
+        }
+
+        const QStringList assets = getThemeAssets(name);
+
+        if (assets.empty()) {
+            QTimer::singleShot(0, this, &QWpUp::updateTheme);
+            return;
+        }
+
+        //: %1 will be replaced by the theme name
+        //% "Start compressing assets for theme %1."
+        qInfo().noquote() << qtTrId("qwpup_info_theme_compr_assets").arg(name);
+
+        auto watcher = new QFutureWatcher<QString>(this); // NOLINT(cppcoreguidelines-owning-memory)
+        const auto start{std::chrono::steady_clock::now()};
+        connect(watcher, &QFutureWatcher<QString>::finished, this, [this, name, watcher, start]() {
+            watcher->deleteLater();
+            const auto end{std::chrono::steady_clock::now()};
+            const std::chrono::nanoseconds duration{end - start};
+            //: %1 will be replaced by the theme name, %2 by the duration
+            //: the compression took in miliseconds
+            //% "Finished compressing assets for theme %1 in %2 ms."
+            qInfo().noquote() << qtTrId("qwpup_info_theme_compr_assets_finished")
+                                     .arg(name,
+                                          m_locale.toString(
+                                              std::chrono::duration_cast<std::chrono::milliseconds>(duration).count()));
+            QTimer::singleShot(0, this, &QWpUp::updateTheme);
+        });
+        auto future = QtConcurrent::mapped(assets, compressAsset);
+        if (future.isFinished()) {
+            watcher->deleteLater();
+            const auto end{std::chrono::steady_clock::now()};
+            const std::chrono::nanoseconds duration{end - start};
+            qInfo().noquote() << qtTrId("qwpup_info_theme_compr_assets_finished")
+                                     .arg(name,
+                                          m_locale.toString(
+                                              std::chrono::duration_cast<std::chrono::milliseconds>(duration).count()));
+            QTimer::singleShot(0, this, &QWpUp::updateTheme);
+        } else {
+            watcher->setFuture(future);
         }
     });
+
+    connect(wp, &WP::failed, this, [this, o, name, curVer, updVer](const QString &error) {
+        QJsonObject _o = o;
+        _o.insert("error"_L1, error);
+        qWarning().noquote() << error;
+        //: %1 will be replaced by the plugin’s name, %2 by the current version
+        //: and %3 by the update version
+        //% "Failed to update theme %1 from version %2 to %3."
+        qWarning().noquote() << qtTrId("qwpup_err_theme_up_failed").arg(name, curVer, updVer);
+        QTimer::singleShot(0, this, &QWpUp::updateTheme);
+    });
+
     wp->start();
 }
 
@@ -1034,42 +1019,40 @@ void QWpUp::checkCoreTranslations()
     qInfo().noquote() << qtTrId("qwpup_info_check_core_trans_updates");
 
     auto wp = wpProcess({u"language"_s, u"core"_s, u"list"_s, u"--update=available"_s, u"--format=json"_s});
-    connect(wp, &QProcess::finished, this, [this, wp](int exitCode, QProcess::ExitStatus exitStatus) {
-        wp->deleteLater();
 
-        if (exitStatus == QProcess::NormalExit && exitCode == 0) {
-
-            const auto array = getJsonArray(wp);
-            if (!array) {
-                handleError(array.error(), Error::Internal);
-                return;
-            }
-
-            if (array->empty()) {
-                //% "No core language updates availabe."
-                qInfo().noquote() << qtTrId("qwpup_info_no_core_lang_ups_avaqil");
-                QTimer::singleShot(0, this, &QWpUp::checkPluginTranslations);
-                return;
-            }
-
-            QStringList availCoreLangUps;
-            availCoreLangUps.reserve(array->size());
-            for (const auto &v : *array) {
-                availCoreLangUps << v.toObject().value("native_name"_L1).toString();
-            }
-            //: %1 will be replaced by a list comma separated list of native language names
-            //% "Updating core translations: %1."
-            qInfo().noquote()
-                << qtTrId("qwpup_info_update_core_translations").arg(m_locale.createSeparatedList(availCoreLangUps));
-            QTimer::singleShot(0, this, &QWpUp::updateCoreTranslations);
-
-        } else {
-            qWarning().noquote() << wp->readAllStandardOutput().trimmed();
-            //% "Failed to check for core translation updates."
-            qWarning().noquote() << qtTrId("qwpup_err_core_lang_check_failed");
-            QTimer::singleShot(0, this, &QWpUp::checkPluginTranslations);
+    connect(wp, &WP::succeeded, this, [this](const QByteArray &data) {
+        const auto array = getJsonArray(data);
+        if (!array) {
+            handleError(array.error(), Error::Internal);
+            return;
         }
+
+        if (array->empty()) {
+            //% "No core language updates availabe."
+            qInfo().noquote() << qtTrId("qwpup_info_no_core_lang_ups_avaqil");
+            QTimer::singleShot(0, this, &QWpUp::checkPluginTranslations);
+            return;
+        }
+
+        QStringList availCoreLangUps;
+        availCoreLangUps.reserve(array->size());
+        for (const auto &v : *array) {
+            availCoreLangUps << v.toObject().value("native_name"_L1).toString();
+        }
+        //: %1 will be replaced by a list comma separated list of native language names
+        //% "Updating core translations: %1."
+        qInfo().noquote()
+            << qtTrId("qwpup_info_update_core_translations").arg(m_locale.createSeparatedList(availCoreLangUps));
+        QTimer::singleShot(0, this, &QWpUp::updateCoreTranslations);
     });
+
+    connect(wp, &WP::failed, this, [this](const QString &error) {
+        qWarning().noquote() << error;
+        //% "Failed to check for core translation updates."
+        qWarning().noquote() << qtTrId("qwpup_err_core_lang_check_failed");
+        QTimer::singleShot(0, this, &QWpUp::checkPluginTranslations);
+    });
+
     wp->start();
 }
 
@@ -1081,20 +1064,20 @@ void QWpUp::updateCoreTranslations()
     }
 
     auto wp = wpProcess(args);
-    connect(wp, &QProcess::finished, this, [this, wp](int exitCode, QProcess::ExitStatus exitStatus) {
-        wp->deleteLater();
 
-        if (exitStatus == QProcess::NormalExit && exitCode == 0) {
-            //% "Successfully updated core translations."
-            qInfo().noquote() << qtTrId("qwpup_info_upd_core_lang_success");
-        } else {
-            qWarning().noquote() << wp->readAllStandardError().trimmed();
-            //% "Failed to update core translations."
-            qWarning().noquote() << qtTrId("qwpup_err_upd_core_langs_failed");
-        }
-
+    connect(wp, &WP::succeeded, this, [this]() {
+        //% "Successfully updated core translations."
+        qInfo().noquote() << qtTrId("qwpup_info_upd_core_lang_success");
         QTimer::singleShot(0, this, &QWpUp::checkPluginTranslations);
     });
+
+    connect(wp, &WP::failed, this, [this](const QString &error) {
+        qWarning().noquote() << error;
+        //% "Failed to update core translations."
+        qWarning().noquote() << qtTrId("qwpup_err_upd_core_langs_failed");
+        QTimer::singleShot(0, this, &QWpUp::checkPluginTranslations);
+    });
+
     wp->start();
 }
 
@@ -1104,52 +1087,49 @@ void QWpUp::checkPluginTranslations()
     qInfo().noquote() << qtTrId("qwpup_info_check_plugin_trans_updates");
 
     auto wp = wpProcess({u"language"_s, u"plugin"_s, u"list"_s, u"--all"_s, u"--update=available"_s, u"--format=json"_s});
-    connect(wp, &QProcess::finished, this, [this, wp](int exitCode, QProcess::ExitStatus exitStatus) {
-        wp->deleteLater();
 
-        if (exitStatus == QProcess::NormalExit && exitCode == 0) {
-
-            const auto array = getJsonArray(wp);
-            if (!array) {
-                qWarning().noquote() << array.error();
-                QTimer::singleShot(0, this, &QWpUp::checkThemeTranslations);
-                return;
-            }
-
-            if (array->empty()) {
-                //% "No plugin language updates available."
-                qInfo().noquote() << qtTrId("qwpup_info_no_plug_lang_ups-avail");
-                QTimer::singleShot(0, this, &QWpUp::checkThemeTranslations);
-                return;
-            }
-
-            QMap<QString, QStringList> availPlugLangUps;
-            for (const auto &v : *array) {
-                const auto object = v.toObject();
-                const auto plugin = object.value("plugin"_L1).toString();
-                const auto name   = object.value("native_name"_L1).toString();
-
-                QStringList langs = availPlugLangUps.value(plugin);
-                langs << name;
-                availPlugLangUps.insert(plugin, langs);
-            }
-
-            for (auto i = availPlugLangUps.cbegin(), end = availPlugLangUps.cend(); i != end; ++i) {
-                //: %1 will be replaced by the plugin name, %2 by a list of the languages
-                //% "Updating languages for plugin „%1“: %2."
-                qInfo().noquote()
-                    << qtTrId("qwpup_info_up_plug_langs").arg(i.key(), m_locale.createSeparatedList(i.value()));
-            }
-
-            QTimer::singleShot(0, this, &QWpUp::updatePluginTranslations);
-
-        } else {
-            qWarning().noquote() << wp->readAllStandardError().trimmed();
-            //% "Failed to check for plugin translation updates."
-            qWarning().noquote() << qtTrId("qwpup_err_plugs_lang_check_failed");
+    connect(wp, &WP::succeeded, this, [this](const QByteArray &data) {
+        const auto array = getJsonArray(data);
+        if (!array) {
+            qWarning().noquote() << array.error();
             QTimer::singleShot(0, this, &QWpUp::checkThemeTranslations);
+            return;
         }
+
+        if (array->empty()) {
+            //% "No plugin language updates available."
+            qInfo().noquote() << qtTrId("qwpup_info_no_plug_lang_ups-avail");
+            QTimer::singleShot(0, this, &QWpUp::checkThemeTranslations);
+            return;
+        }
+
+        QMap<QString, QStringList> availPlugLangUps;
+        for (const auto &v : *array) {
+            const auto object = v.toObject();
+            const auto plugin = object.value("plugin"_L1).toString();
+            const auto name   = object.value("native_name"_L1).toString();
+
+            QStringList langs = availPlugLangUps.value(plugin);
+            langs << name;
+            availPlugLangUps.insert(plugin, langs);
+        }
+
+        for (auto i = availPlugLangUps.cbegin(), end = availPlugLangUps.cend(); i != end; ++i) {
+            //: %1 will be replaced by the plugin name, %2 by a list of the languages
+            //% "Updating languages for plugin „%1“: %2."
+            qInfo().noquote() << qtTrId("qwpup_info_up_plug_langs").arg(i.key(), m_locale.createSeparatedList(i.value()));
+        }
+
+        QTimer::singleShot(0, this, &QWpUp::updatePluginTranslations);
     });
+
+    connect(wp, &WP::failed, this, [this](const QString &error) {
+        qWarning().noquote() << error;
+        //% "Failed to check for plugin translation updates."
+        qWarning().noquote() << qtTrId("qwpup_err_plugs_lang_check_failed");
+        QTimer::singleShot(0, this, &QWpUp::checkThemeTranslations);
+    });
+
     wp->start();
 }
 
@@ -1161,20 +1141,20 @@ void QWpUp::updatePluginTranslations()
     }
 
     auto wp = wpProcess(args);
-    connect(wp, &QProcess::finished, this, [this, wp](int exitCode, QProcess::ExitStatus exitStatus) {
-        wp->deleteLater();
 
-        if (exitStatus == QProcess::NormalExit && exitCode == 0) {
-            //% "Successfully updated plugin translations."
-            qInfo().noquote() << qtTrId("qwpup_info_upd_plug_lang_success");
-        } else {
-            qWarning().noquote() << wp->readAllStandardError().trimmed();
-            //% "Failed to update plugin translations."
-            qWarning().noquote() << qtTrId("qwpup_err_upd_plug_langs_failed");
-        }
-
+    connect(wp, &WP::succeeded, this, [this]() {
+        //% "Successfully updated plugin translations."
+        qInfo().noquote() << qtTrId("qwpup_info_upd_plug_lang_success");
         QTimer::singleShot(0, this, &QWpUp::checkThemeTranslations);
     });
+
+    connect(wp, &WP::failed, this, [this](const QString &error) {
+        qWarning().noquote() << error;
+        //% "Failed to update plugin translations."
+        qWarning().noquote() << qtTrId("qwpup_err_upd_plug_langs_failed");
+        QTimer::singleShot(0, this, &QWpUp::checkThemeTranslations);
+    });
+
     wp->start();
 }
 
@@ -1184,52 +1164,49 @@ void QWpUp::checkThemeTranslations()
     qInfo().noquote() << qtTrId("qwpup_info_check_theme_trans_updates");
 
     auto wp = wpProcess({u"language"_s, u"theme"_s, u"list"_s, u"--all"_s, u"--update=available"_s, u"--format=json"_s});
-    connect(wp, &QProcess::finished, this, [this, wp](int exitCode, QProcess::ExitStatus exitStatus) {
-        wp->deleteLater();
 
-        if (exitStatus == QProcess::NormalExit && exitCode == 0) {
-
-            const auto array = getJsonArray(wp);
-            if (!array) {
-                qWarning().noquote() << array.error();
-                QTimer::singleShot(0, this, &QWpUp::finish);
-                return;
-            }
-
-            if (array->empty()) {
-                //% "No theme language updates available."
-                qInfo().noquote() << qtTrId("qwpup_info_no_theme_lang_ups-avail");
-                QTimer::singleShot(0, this, &QWpUp::finish);
-                return;
-            }
-
-            QMap<QString, QStringList> availPlugLangUps;
-            for (const auto &v : *array) {
-                const auto object = v.toObject();
-                const auto theme  = object.value("theme"_L1).toString();
-                const auto name   = object.value("native_name"_L1).toString();
-
-                QStringList langs = availPlugLangUps.value(theme);
-                langs << name;
-                availPlugLangUps.insert(theme, langs);
-            }
-
-            for (auto i = availPlugLangUps.cbegin(), end = availPlugLangUps.cend(); i != end; ++i) {
-                //: %1 will be replaced by the theme name, %2 by a list of the languages
-                //% "Updating languages for theme „%1“: %2."
-                qInfo().noquote()
-                    << qtTrId("qwpup_info_up_theme_langs").arg(i.key(), m_locale.createSeparatedList(i.value()));
-            }
-
-            QTimer::singleShot(0, this, &QWpUp::updateThemeTranslations);
-
-        } else {
-            qWarning().noquote() << wp->readAllStandardError().trimmed();
-            //% "Failed to check for theme translation updates."
-            qWarning().noquote() << qtTrId("qwpup_err_theme_lang_check_failed");
+    connect(wp, &WP::succeeded, this, [this](const QByteArray &data) {
+        const auto array = getJsonArray(data);
+        if (!array) {
+            qWarning().noquote() << array.error();
             QTimer::singleShot(0, this, &QWpUp::finish);
+            return;
         }
+
+        if (array->empty()) {
+            //% "No theme language updates available."
+            qInfo().noquote() << qtTrId("qwpup_info_no_theme_lang_ups-avail");
+            QTimer::singleShot(0, this, &QWpUp::finish);
+            return;
+        }
+
+        QMap<QString, QStringList> availPlugLangUps;
+        for (const auto &v : *array) {
+            const auto object = v.toObject();
+            const auto theme  = object.value("theme"_L1).toString();
+            const auto name   = object.value("native_name"_L1).toString();
+
+            QStringList langs = availPlugLangUps.value(theme);
+            langs << name;
+            availPlugLangUps.insert(theme, langs);
+        }
+
+        for (auto i = availPlugLangUps.cbegin(), end = availPlugLangUps.cend(); i != end; ++i) {
+            //: %1 will be replaced by the theme name, %2 by a list of the languages
+            //% "Updating languages for theme „%1“: %2."
+            qInfo().noquote() << qtTrId("qwpup_info_up_theme_langs").arg(i.key(), m_locale.createSeparatedList(i.value()));
+        }
+
+        QTimer::singleShot(0, this, &QWpUp::updateThemeTranslations);
     });
+
+    connect(wp, &WP::failed, this, [this](const QString &error) {
+        qWarning().noquote() << error;
+        //% "Failed to check for theme translation updates."
+        qWarning().noquote() << qtTrId("qwpup_err_theme_lang_check_failed");
+        QTimer::singleShot(0, this, &QWpUp::finish);
+    });
+
     wp->start();
 }
 
@@ -1241,20 +1218,20 @@ void QWpUp::updateThemeTranslations()
     }
 
     auto wp = wpProcess(args);
-    connect(wp, &QProcess::finished, this, [this, wp](int exitCode, QProcess::ExitStatus exitStatus) {
-        wp->deleteLater();
 
-        if (exitStatus == QProcess::NormalExit && exitCode == 0) {
-            //% "Successfully updated theme translations."
-            qInfo().noquote() << qtTrId("qwpup_info_upd_theme_lang_success");
-        } else {
-            qWarning().noquote() << wp->readAllStandardError().trimmed();
-            //% "Failed to update theme translations."
-            qWarning().noquote() << qtTrId("qwpup_err_upd_theme_langs_failed");
-        }
-
+    connect(wp, &WP::succeeded, this, [this]() {
+        //% "Successfully updated theme translations."
+        qInfo().noquote() << qtTrId("qwpup_info_upd_theme_lang_success");
         QTimer::singleShot(0, this, &QWpUp::checkThemeTranslations);
     });
+
+    connect(wp, &WP::failed, this, [this](const QString &error) {
+        QTimer::singleShot(0, this, &QWpUp::checkThemeTranslations);
+        qWarning().noquote() << error;
+        //% "Failed to update theme translations."
+        qWarning().noquote() << qtTrId("qwpup_err_upd_theme_langs_failed");
+    });
+
     wp->start();
 }
 
@@ -1310,17 +1287,12 @@ void QWpUp::handleError(const QString &msg, Error exitCode)
     QCoreApplication::exit(static_cast<int>(exitCode));
 }
 
-QProcess *QWpUp::wpProcess(const QStringList &arguments)
+WP *QWpUp::wpProcess(const QStringList &arguments)
 {
-    auto proc = new QProcess(this); // NOLINT(cppcoreguidelines-owning-memory)
-    proc->setProgram(m_wpPath);
-    proc->setWorkingDirectory(m_wpDir.absolutePath());
-    proc->setProcessEnvironment(m_env);
-    proc->setArguments(arguments);
-    return proc;
+    return new WP(m_wpPath, m_wpDir.absolutePath(), m_env, arguments, this); // NOLINT(cppcoreguidelines-owning-memory)
 }
 
-QProcess *QWpUp::wpGetOption(const QString &name)
+WP *QWpUp::wpGetOption(const QString &name)
 {
     return wpProcess({u"option"_s, u"get"_s, name});
 }
@@ -1454,10 +1426,10 @@ QStringList QWpUp::getAllAssets() const
  * If parsing the JSON data fails, the unexpected return value will contain
  * the error string.
  */
-std::expected<QJsonArray, QString> QWpUp::getJsonArray(QProcess *p) const
+std::expected<QJsonArray, QString> QWpUp::getJsonArray(const QByteArray &ba) const
 {
     QJsonParseError jpe;
-    const auto json = QJsonDocument::fromJson(p->readAllStandardOutput(), &jpe);
+    const auto json = QJsonDocument::fromJson(ba, &jpe);
     if (jpe.error != QJsonParseError::NoError) {
         //: Error message, %1 will be replaced by the error message from the JSON parser.
         //% "Failed to parse JSON data: %1"
