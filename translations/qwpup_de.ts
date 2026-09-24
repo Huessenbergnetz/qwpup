@@ -126,7 +126,7 @@
     </message>
     <message id="qwpup_info_check_plugin_trans_updates">
         <source>Checking for plugin translation updates.</source>
-        <translation>Prüfe auf Plugin-Aktualisierungen.</translation>
+        <translation>Prüfe auf Aktualisierungen für Plugin-Übersetzungen.</translation>
     </message>
     <message id="qwpup_info_up_plug_langs">
         <source>Updating languages for plugin „%1“: %2.</source>
@@ -210,7 +210,7 @@
     </message>
     <message id="qwpup_info_no_plug_ups_avail">
         <source>No plugin updates available.</source>
-        <translation>Keine Plugin-Aktualisierungen verfügbar:</translation>
+        <translation>Keine Plugin-Aktualisierungen verfügbar.</translation>
     </message>
     <message id="qwpup_info_updates_none">
         <source>none</source>
@@ -411,7 +411,7 @@
     </message>
     <message id="qwpup_info_check_theme_trans_updates">
         <source>Checking for theme translation updates.</source>
-        <translation>Prüfe auf Aktualisierungen für Plugin-Übersetzungen.</translation>
+        <translation>Prüfe auf Aktualisierungen für Theme-Übersetzungen.</translation>
     </message>
     <message id="qwpup_info_no_theme_lang_ups-avail">
         <source>No theme language updates available.</source>
