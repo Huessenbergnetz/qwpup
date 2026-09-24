@@ -1157,6 +1157,7 @@ void QWpUp::finish()
                                      std::chrono::duration_cast<std::chrono::milliseconds>(duration).count()));
         QCoreApplication::quit();
     });
+    c->start(assets);
 }
 
 void QWpUp::handleError(const QString &msg, Error exitCode)
