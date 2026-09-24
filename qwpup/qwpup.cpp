@@ -126,6 +126,13 @@ Error QWpUp::start(const QStringList &arguments)
                                  qtTrId("qwpup_cli_opt_dry_run"));
     parser.addOption(dryRunOpt);
 
+    QCommandLineOption statsOpt(u"stats"_s,
+                                //: Option description in the CLI help
+                                //% "Write stats to file at path or stdout."
+                                qtTrId("qwpup_cli_opt_stats"),
+                                qtTrId("qwpup_cli_opt_val_path"));
+    parser.addOption(statsOpt);
+
     parser.process(arguments);
 
     // Set the log level
@@ -267,6 +274,11 @@ Error QWpUp::start(const QStringList &arguments)
 
     qDebug() << "Say yes:" << m_sayYes;
 
+    if (parser.isSet(statsOpt)) {
+        m_statsFilePath = parser.value(statsOpt);
+        qDebug().noquote() << "Writing statst to:" << m_statsFilePath;
+    }
+
     m_dryRun = parser.isSet(dryRunOpt);
     if (m_dryRun) {
         //% "Doing dry run without performing real actions."
@@ -283,7 +295,16 @@ Error QWpUp::start(const QStringList &arguments)
 
 void QWpUp::doStart()
 {
-    getCurrentVersion();
+    if (m_statsFilePath.isEmpty()) {
+        QTimer::singleShot(0, this, &QWpUp::getCurrentVersion);
+        return;
+    }
+
+    QTimer::singleShot(0, this, &QWpUp::getBlogName);
+}
+
+void QWpUp::getBlogName()
+{
 }
 
 void QWpUp::getCurrentVersion()
@@ -302,7 +323,9 @@ void QWpUp::getCurrentVersion()
                 listCoreVersions();
             }
         } else {
-            qCritical().noquote() << wp->readAllStandardError().trimmed();
+            const auto error = QString::fromLocal8Bit(wp->readAllStandardError().trimmed());
+            m_stats.insert("error"_L1, error);
+            qCritical().noquote() << error;
             //% "Failed to get version information."
             handleError(qtTrId("qwpup_err_wp_version_info_failed"), Error::Internal);
         }
@@ -319,7 +342,9 @@ void QWpUp::showVersionInfo()
             qDebug().noquote() << wp->readAllStandardOutput().trimmed();
             listCoreVersions();
         } else {
-            qCritical().noquote() << wp->readAllStandardError().trimmed();
+            const auto error = QString::fromLocal8Bit(wp->readAllStandardError().trimmed());
+            m_stats.insert("error"_L1, error);
+            qCritical().noquote() << error;
             handleError(qtTrId("qwpup_err_wp_version_info_failed"), Error::Internal);
         }
     });
@@ -337,6 +362,7 @@ void QWpUp::listCoreVersions()
 
             const auto array = getJsonArray(wp);
             if (!array) {
+                m_stats.insert("error"_L1, array.error());
                 handleError(array.error(), Error::Internal);
                 return;
             }
@@ -353,9 +379,9 @@ void QWpUp::listCoreVersions()
                 const auto updateType = o.value("update_type"_L1).toString();
                 if (updateType == "minor"_L1) {
                     m_minCoreUpAvail      = true;
-                    m_availMinCoreVersoin = o.value("version"_L1).toString();
+                    m_availMinCoreVersion = o.value("version"_L1).toString();
                     //% "New minor core version available: %1"
-                    qInfo().noquote() << qtTrId("qwpup_inf_min_core_ver_avail").arg(m_availMinCoreVersoin);
+                    qInfo().noquote() << qtTrId("qwpup_inf_min_core_ver_avail").arg(m_availMinCoreVersion);
                 }
                 if (updateType == "major"_L1) {
                     m_majCoreUpAvail      = true;
@@ -374,7 +400,9 @@ void QWpUp::listCoreVersions()
             }
 
         } else {
-            qCritical().noquote() << wp->readAllStandardError().trimmed();
+            const auto error = QString::fromLocal8Bit(wp->readAllStandardError().trimmed());
+            m_stats.insert("error"_L1, error);
+            qCritical().noquote() << error;
             //% "Failed to check for core updates."
             handleError(qtTrId("qwpup_err_ep_core_up_check_failed"), Error::Internal);
         }
@@ -384,7 +412,7 @@ void QWpUp::listCoreVersions()
 
 void QWpUp::updateCore()
 {
-    const QString targetVersion = m_wpUpMajor ? m_availMajCoreVersion : m_availMinCoreVersoin;
+    const QString targetVersion = m_wpUpMajor ? m_availMajCoreVersion : m_availMinCoreVersion;
 
     if (!m_sayYes) {
         //: %1 will be replaced by the current version number, %2 by the
@@ -424,7 +452,9 @@ void QWpUp::updateCore()
             m_coreUpdated = true;
             QTimer::singleShot(0, this, &QWpUp::checkPluginUpdates);
         } else {
-            qCritical().noquote() << wp->readAllStandardError().trimmed();
+            const auto error = QString::fromLocal8Bit(wp->readAllStandardError().trimmed());
+            m_stats.insert("error"_L1, error);
+            qCritical().noquote() << error;
             //% "Failed to update WordPress core."
             handleError(qtTrId("qwpup_err_wp_core_update_failed"), Error::Internal);
         }
@@ -1290,6 +1320,11 @@ QProcess *QWpUp::wpProcess(const QStringList &arguments)
     return proc;
 }
 
+QProcess *QWpUp::wpGetOption(const QString &name)
+{
+    return wpProcess({u"option"_s, u"get"_s, name});
+}
+
 /**
  * Asks a \a question on \c stdout and reads the answer from \c stdin. The anwer can be
  * yes, no or cancel.
@@ -1435,6 +1470,27 @@ std::expected<QJsonArray, QString> QWpUp::getJsonArray(QProcess *p) const
     }
 
     return json.array();
+}
+
+void QWpUp::setCoreStat(QLatin1StringView key, const QJsonValue &val)
+{
+    auto o = m_stats.value("core"_L1).toObject();
+    o.insert(key, val);
+    m_stats.insert("core"_L1, o);
+}
+
+void QWpUp::addPuginStat(QLatin1StringView key, const QJsonObject &plugin)
+{
+    auto a = m_stats.value("plugins"_L1).toArray();
+    a.append(plugin);
+    m_stats.insert("plugins"_L1, a);
+}
+
+void QWpUp::addThemeStat(QLatin1StringView key, const QJsonObject &theme)
+{
+    auto a = m_stats.value("themes"_L1).toArray();
+    a.append(theme);
+    m_stats.insert("themes"_L1, a);
 }
 
 #include "moc_qwpup.cpp"

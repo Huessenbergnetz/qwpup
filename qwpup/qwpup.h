@@ -32,6 +32,7 @@ public:
 
 private slots:
     void doStart();
+    void getBlogName();
     void getCurrentVersion();
     void showVersionInfo();
     void listCoreVersions();
@@ -51,6 +52,7 @@ private slots:
 private:
     void handleError(const QString &msg, Error exitCode);
     QProcess *wpProcess(const QStringList &arguments);
+    QProcess *wpGetOption(const QString &name);
     Answer askYesNoCancel(const QString &question);
     Answer askYesNo(const QString &question);
     [[nodiscard]] QStringList getAssets(const QString &basePath) const;
@@ -59,10 +61,15 @@ private:
     [[nodiscard]] QStringList getAllAssets() const;
     [[nodiscard]] std::expected<QJsonArray, QString> getJsonArray(QProcess *p) const;
 
+    void setCoreStat(QLatin1StringView key, const QJsonValue &val);
+    void addPuginStat(QLatin1StringView key, const QJsonObject &val);
+    void addThemeStat(QLatin1StringView key, const QJsonObject &theme);
+
     QString m_wpPath;
     QString m_currentCoreVersion;
     QString m_availMajCoreVersion;
-    QString m_availMinCoreVersoin;
+    QString m_availMinCoreVersion;
+    QString m_statsFilePath;
     QQueue<QJsonObject> m_pluginsToUpdate;
     QQueue<QJsonObject> m_themesToUpdate;
     QJsonArray m_skippedPlugins;
@@ -71,6 +78,7 @@ private:
     QJsonArray m_skippedThemes;
     QJsonArray m_updatedThemes;
     QJsonArray m_failedThemes;
+    QJsonObject m_stats;
     QLocale m_locale;
     QDir m_wpDir;
     std::unique_ptr<QTemporaryDir> m_tempDir;
