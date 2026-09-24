@@ -121,13 +121,13 @@ Error QWpUp::start(const QStringList &arguments)
 
     QCommandLineOption dryRunOpt(u"dry-run"_s,
                                  //: Option description in the CLI help
-                                 //% "Do not perform the real actions."
+                                 //% "Do a dry run without performing real actions."
                                  qtTrId("qwpup_cli_opt_dry_run"));
     parser.addOption(dryRunOpt);
 
     QCommandLineOption statsOpt(u"stats"_s,
                                 //: Option description in the CLI help
-                                //% "Write stats to file at path or stdout."
+                                //% "Write stats to file at path. Path may also be stdout."
                                 qtTrId("qwpup_cli_opt_stats"),
                                 qtTrId("qwpup_cli_opt_val_path"));
     parser.addOption(statsOpt);

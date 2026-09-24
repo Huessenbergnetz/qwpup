@@ -161,14 +161,16 @@
         <translation>Keine Aktualisierungen für den Kern verfügbar.</translation>
     </message>
     <message id="qwpup_cli_opt_dry_run">
-        <source>Do not perform the real actions.</source>
+        <source>Do a dry run without performing real actions.</source>
+        <oldsource>Do not perform the real actions.</oldsource>
         <extracomment>Option description in the CLI help</extracomment>
-        <translation>Führe keine echten Aktionen durch.</translation>
+        <translation>Führe einen Probelauf ohne echte Aktionen durch.</translation>
     </message>
     <message id="qwpup_cli_opt_stats">
-        <source>Write stats to file at path or stdout.</source>
+        <source>Write stats to file at path. Path may also be stdout.</source>
+        <oldsource>Write stats to file at path or stdout.</oldsource>
         <extracomment>Option description in the CLI help</extracomment>
-        <translation>Schreibe Statistiken in die Datei unter Pfad oder nach stdout.</translation>
+        <translation>Schreibe Statistiken in die Datei unter Pfad. Der Pfad kann auch stdout sein.</translation>
     </message>
     <message id="qwpup_info_perform_dry_run">
         <source>Doing dry run without performing real actions.</source>

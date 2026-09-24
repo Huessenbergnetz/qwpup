@@ -161,12 +161,14 @@
         <translation type="unfinished"></translation>
     </message>
     <message id="qwpup_cli_opt_dry_run">
-        <source>Do not perform the real actions.</source>
+        <source>Do a dry run without performing real actions.</source>
+        <oldsource>Do not perform the real actions.</oldsource>
         <extracomment>Option description in the CLI help</extracomment>
         <translation type="unfinished"></translation>
     </message>
     <message id="qwpup_cli_opt_stats">
-        <source>Write stats to file at path or stdout.</source>
+        <source>Write stats to file at path. Path may also be stdout.</source>
+        <oldsource>Write stats to file at path or stdout.</oldsource>
         <extracomment>Option description in the CLI help</extracomment>
         <translation type="unfinished"></translation>
     </message>
