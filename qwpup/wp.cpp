@@ -31,6 +31,7 @@ void WP::start()
             emit failed(QString::fromLocal8Bit(m_wp->readAllStandardError().trimmed()));
         }
     });
+    m_wp->start();
 }
 
 #include "moc_wp.cpp"

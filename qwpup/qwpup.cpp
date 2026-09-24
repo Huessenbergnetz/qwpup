@@ -304,6 +304,7 @@ void QWpUp::doStart()
 
 void QWpUp::getBlogName()
 {
+    QTimer::singleShot(0, this, &QWpUp::getCurrentVersion);
 }
 
 void QWpUp::getCurrentVersion()
