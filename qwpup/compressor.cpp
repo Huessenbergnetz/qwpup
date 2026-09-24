@@ -98,13 +98,15 @@ QString compressAsset(const QString &asset)
 
 void Compressor::start(const QStringList &files)
 {
-    auto watcher = new QFutureWatcher<QString>(this);
+    auto watcher = new QFutureWatcher<QString>(this); // NOLINT(cppcoreguidelines-owning-memory)
     const auto start{std::chrono::steady_clock::now()};
+
     connect(watcher, &QFutureWatcher<QString>::finished, this, [this, start]() {
         const auto end{std::chrono::steady_clock::now()};
         const std::chrono::nanoseconds duration{end - start};
         emit finished(duration);
     });
+
     auto future = QtConcurrent::mapped(files, compressAsset);
     if (future.isFinished()) {
         const auto end{std::chrono::steady_clock::now()};
