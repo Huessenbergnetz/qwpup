@@ -1,0 +1,13 @@
+# SPDX-FileCopyrightText: (C) 2026 Matthias Fehring <https://www.huessenbergnetz.de>
+# SPDX-License-Identifier: GPL-3.0-or-later
+
+rebuild_master:
+  steps:
+    - trigger_services:
+        project: home:buschmann23:Qt6:devel
+        package: qwpup
+  filters:
+    event: push
+    branches:
+      only:
+        - master
