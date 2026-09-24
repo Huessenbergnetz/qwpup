@@ -367,7 +367,7 @@
     </message>
     <message id="qwpup_info_no_core_lang_ups_avaqil">
         <source>No core language updates availabe.</source>
-        <translation>Keine Aktualisierungen für Kernüberseztungen verüfgbar.</translation>
+        <translation>Keine Aktualisierungen für Kernübersetzungen verfügbar.</translation>
     </message>
     <message id="qwpup_err_core_lang_check_failed">
         <source>Failed to check for core translation updates.</source>
