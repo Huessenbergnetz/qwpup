@@ -10,6 +10,8 @@ target_sources(qwpup
         qwpup.cpp
         wp.h
         wp.cpp
+        compressor.h
+        compressor.cpp
         ../common/utils.h
         ../common/utils.cpp
         ../common/enums.h
