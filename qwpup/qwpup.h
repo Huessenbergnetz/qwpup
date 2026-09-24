@@ -84,6 +84,7 @@ private:
     bool m_coreUpdated{false};
     bool m_majCoreUpAvail{false};
     bool m_minCoreUpAvail{false};
+    bool m_dryRun{false};
 };
 
 #endif // QWPUP_H

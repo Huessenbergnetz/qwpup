@@ -164,6 +164,15 @@
         <source>No core updates available.</source>
         <translation type="unfinished"></translation>
     </message>
+    <message id="qwpup_cli_opt_dry_run">
+        <source>Do not perform the real actions.</source>
+        <extracomment>Option description in the CLI help</extracomment>
+        <translation type="unfinished"></translation>
+    </message>
+    <message id="qwpup_info_perform_dry_run">
+        <source>Doing dry run without performing real actions.</source>
+        <translation type="unfinished"></translation>
+    </message>
     <message id="qwpup_inf_min_core_ver_avail">
         <source>New minor core version available: %1</source>
         <translation type="unfinished"></translation>

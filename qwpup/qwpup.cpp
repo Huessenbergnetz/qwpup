@@ -120,6 +120,12 @@ Error QWpUp::start(const QStringList &arguments)
                                 qtTrId("qwpup_cli_opt_val_path"));
     parser.addOption(wpCliOpt);
 
+    QCommandLineOption dryRunOpt(u"dry-run"_s,
+                                 //: Option description in the CLI help
+                                 //% "Do not perform the real actions."
+                                 qtTrId("qwpup_cli_opt_dry_run"));
+    parser.addOption(dryRunOpt);
+
     parser.process(arguments);
 
     // Set the log level
@@ -260,6 +266,12 @@ Error QWpUp::start(const QStringList &arguments)
 
     qDebug() << "Say yes:" << m_sayYes;
 
+    m_dryRun = parser.isSet(dryRunOpt);
+    if (m_dryRun) {
+        //% "Doing dry run without performing real actions."
+        qInfo().noquote() << qtTrId("qwpup_info_perform_dry_run");
+    }
+
     m_env = QProcessEnvironment::systemEnvironment();
     m_env.insert(u"WP_CLI_CACHE_DIR"_s, m_tempDir->path());
 
@@ -388,6 +400,16 @@ void QWpUp::updateCore()
     //% "Updating WordPress core from version %1 to version %2."
     qInfo().noquote() << qtTrId("qwpup_info_update_core").arg(m_currentCoreVersion, targetVersion);
 
+    if (m_dryRun) {
+        //: Info message, %1 will be replaced by the previous WordPress core version,
+        //: %2 will be replaced by the now updated version
+        //% "Successfully updated WordPres core from version %1 to version %2."
+        qInfo().noquote() << qtTrId("qwpup_infi_update_core_success").arg(m_currentCoreVersion, targetVersion);
+        m_coreUpdated = true;
+        QTimer::singleShot(0, this, &QWpUp::checkPluginUpdates);
+        return;
+    }
+
     QStringList args({u"core"_s, u"update"_s});
     if (!m_wpUpMajor) {
         args << u"--minor"_s;
@@ -397,12 +419,9 @@ void QWpUp::updateCore()
     connect(wp, &QProcess::finished, this, [this, wp, targetVersion](int exitCode, QProcess::ExitStatus exitStatus) {
         wp->deleteLater();
         if (exitStatus == QProcess::NormalExit && exitCode == 0) {
-            //: Info message, %1 will be replaced by the previous WordPress core version,
-            //: %2 will be replaced by the now updated version
-            //% "Successfully updated WordPres core from version %1 to version %2."
             qInfo().noquote() << qtTrId("qwpup_infi_update_core_success").arg(m_currentCoreVersion, targetVersion);
             m_coreUpdated = true;
-            checkPluginUpdates();
+            QTimer::singleShot(0, this, &QWpUp::checkPluginUpdates);
         } else {
             qCritical().noquote() << wp->readAllStandardError().trimmed();
             //% "Failed to update WordPress core."
@@ -660,7 +679,12 @@ void QWpUp::updatePlugin()
     //% "Updating plugin %1 from version %2 to %3."
     qInfo().noquote() << qtTrId("qwpup_info_update_plugin").arg(name, version, updateVersion);
 
-    auto wp = wpProcess({u"plugin"_s, u"update"_s, name, u"--format=json"_s, u"--dry-run"_s});
+    QStringList args({u"plugin"_s, u"update"_s, name, u"--format=json"_s});
+    if (m_dryRun) {
+        args << u"--dry-run"_s;
+    }
+
+    auto wp = wpProcess(args);
     connect(wp,
             &QProcess::finished,
             this,
@@ -674,8 +698,7 @@ void QWpUp::updatePlugin()
             //% "Successfully updated plugin %1 from version %2 to %3."
             qInfo().noquote() << qtTrId("qwpup_info_plug_up_success").arg(name, version, updateVersion);
 
-            // if the core has been updated, we will compress all in the end
-            if (m_coreUpdated) {
+            if (m_coreUpdated || m_dryRun || m_skipCompression) {
                 QTimer::singleShot(0, this, &QWpUp::updatePlugin);
                 return;
             }
@@ -897,7 +920,12 @@ void QWpUp::updateTheme()
     //% "Updating theme %1 from version %2 to %3."
     qInfo().noquote() << qtTrId("qwpup_info_update_theme").arg(name, curVer, updVer);
 
-    auto wp = wpProcess({u"theme"_s, u"update"_s, name, u"--format=json"_s, u"--dry-run"_s});
+    QStringList args({u"theme"_s, u"update"_s, name, u"--format=json"_s});
+    if (m_dryRun) {
+        args << u"--dry-run"_s;
+    }
+
+    auto wp = wpProcess(args);
     connect(
         wp, &QProcess::finished, this, [this, wp, o, name, curVer, updVer](int exitCode, QProcess::ExitStatus exitStatus) {
         wp->deleteLater();
@@ -909,8 +937,7 @@ void QWpUp::updateTheme()
             //% "Successfully updated theme %1 from version %2 to %3."
             qInfo().noquote() << qtTrId("qwpup_info_theme_up_success").arg(name, curVer, updVer);
 
-            // if the core has been updated, we will compress all in the end
-            if (m_coreUpdated) {
+            if (m_coreUpdated || m_dryRun || m_skipCompression) {
                 QTimer::singleShot(0, this, &QWpUp::updateTheme);
                 return;
             }
@@ -1017,7 +1044,12 @@ void QWpUp::checkCoreTranslations()
 
 void QWpUp::updateCoreTranslations()
 {
-    auto wp = wpProcess({u"language"_s, u"core"_s, u"update"_s, u"--dry-run"_s});
+    QStringList args({u"language"_s, u"core"_s, u"update"_s});
+    if (m_dryRun) {
+        args << u"--dry-run"_s;
+    }
+
+    auto wp = wpProcess(args);
     connect(wp, &QProcess::finished, this, [this, wp](int exitCode, QProcess::ExitStatus exitStatus) {
         wp->deleteLater();
 
@@ -1092,7 +1124,12 @@ void QWpUp::checkPluginTranslations()
 
 void QWpUp::updatePluginTranslations()
 {
-    auto wp = wpProcess({u"language"_s, u"plugin"_s, u"update"_s, u"--all"_s, u"--dry-run"_s});
+    QStringList args({u"language"_s, u"plugin"_s, u"update"_s, u"--all"_s});
+    if (m_dryRun) {
+        args << u"--dry-run"_s;
+    }
+
+    auto wp = wpProcess(args);
     connect(wp, &QProcess::finished, this, [this, wp](int exitCode, QProcess::ExitStatus exitStatus) {
         wp->deleteLater();
 
@@ -1167,7 +1204,12 @@ void QWpUp::checkThemeTranslations()
 
 void QWpUp::updateThemeTranslations()
 {
-    auto wp = wpProcess({u"language"_s, u"theme"_s, u"update"_s, u"--all"_s, u"--dry-run"_s});
+    QStringList args({u"language"_s, u"theme"_s, u"update"_s, u"--all"_s});
+    if (m_dryRun) {
+        args << u"--dry-run"_s;
+    }
+
+    auto wp = wpProcess(args);
     connect(wp, &QProcess::finished, this, [this, wp](int exitCode, QProcess::ExitStatus exitStatus) {
         wp->deleteLater();
 
@@ -1187,7 +1229,7 @@ void QWpUp::updateThemeTranslations()
 
 void QWpUp::finish()
 {
-    if (!m_coreUpdated) {
+    if (!m_coreUpdated || m_dryRun || m_skipCompression) {
         QCoreApplication::quit();
         return;
     }
