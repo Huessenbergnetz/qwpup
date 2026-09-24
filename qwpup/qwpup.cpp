@@ -202,7 +202,7 @@ Error QWpUp::start(const QStringList &arguments)
         m_wpPath = QDir::cleanPath(QDir::current().absoluteFilePath(parser.value(wpCliOpt)));
         if (!QFileInfo::exists(m_wpPath)) {
             //: Error message, %1 will be replaced by the full file path
-            //% "No file found at “%1“."
+            //% "Can not find WP CLI executable at “%1“."
             qCritical().noquote() << qtTrId("qwpup_err_wp_exe_path_wrong").arg(m_wpPath);
             return Error::Config;
         }
@@ -216,7 +216,8 @@ Error QWpUp::start(const QStringList &arguments)
     }
     if (m_wpPath.isEmpty()) {
         //: Error message, %1 will be replaced with a CLI option name like --wp-cli
-        //% "Can not find WP CLI executable. Check your PATH or explicitely set the path to the executable with “%1”."
+        //% "Can not find WP CLI executable (wp or wp-cli). Check your PATH or explicitely set the path to the executable
+        // with “%1”."
         qCritical().noquote() << qtTrId("qwpup_err_wp_exe_not_found").arg(u"--wp-cli"_s);
         return Error::Config;
     }
@@ -367,8 +368,8 @@ void QWpUp::listCoreVersions()
             if ((!m_wpUpMajor && m_minCoreUpAvail) || (m_wpUpMajor && m_majCoreUpAvail)) {
                 QTimer::singleShot(0, this, &QWpUp::updateCore);
             } else {
-                //% "Skipping minor core update."
-                qInfo().noquote() << qtTrId("qwpup_info_skip_minor_core_update");
+                //% "Skipping major core update."
+                qInfo().noquote() << qtTrId("qwpup_info_skip_major_core_update");
                 QTimer::singleShot(0, this, &QWpUp::checkPluginUpdates);
             }
 

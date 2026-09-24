@@ -85,15 +85,14 @@
         <translation type="unfinished"></translation>
     </message>
     <message id="qwpup_err_wp_exe_path_wrong">
-        <source>No file found at “%1“.</source>
-        <oldsource>No file found at “%1“.
-</oldsource>
+        <source>Can not find WP CLI executable at “%1“.</source>
+        <oldsource>No file found at “%1“.</oldsource>
         <extracomment>Error message, %1 will be replaced by the full file path</extracomment>
         <translation type="unfinished"></translation>
     </message>
     <message id="qwpup_err_wp_exe_not_found">
-        <source>Can not find WP CLI executable. Check your PATH or explicitely set the path to the executable with “%1”.</source>
-        <oldsource>Can not find WP CLI executable. Check your PATH or explicitely set the path to the executable with %1</oldsource>
+        <source>Can not find WP CLI executable (wp or wp-cli). Check your PATH or explicitely set the path to the executable with “%1”.</source>
+        <oldsource>Can not find WP CLI executable. Check your PATH or explicitely set the path to the executable with “%1”.</oldsource>
         <extracomment>Error message, %1 will be replaced with a CLI option name like --wp-cli</extracomment>
         <translation type="unfinished"></translation>
     </message>
@@ -113,10 +112,6 @@
     </message>
     <message id="qwpup_info_check_core_updates">
         <source>Checking for core updates.</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message id="qwpup_info_skip_minor_core_update">
-        <source>Skipping minor core update.</source>
         <translation type="unfinished"></translation>
     </message>
     <message id="qwpup_info_skip_plug_ups">
@@ -179,6 +174,10 @@
     </message>
     <message id="qwpup_inf_maj_core_ver_avail">
         <source>New major core version available: %1</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message id="qwpup_info_skip_major_core_update">
+        <source>Skipping major core update.</source>
         <translation type="unfinished"></translation>
     </message>
     <message id="qwpup_err_ep_core_up_check_failed">
