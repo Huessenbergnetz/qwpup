@@ -102,6 +102,14 @@
         <extracomment>Error message, %1 will be replaced by the error message</extracomment>
         <translation type="unfinished"></translation>
     </message>
+    <message id="qwpup_err_wp_blogname_info_failed">
+        <source>Failed to get WordPress blogname option value.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message id="qwpup_err_wp_siteurl_info_failed">
+        <source>Failed to get WordPress siteurl option value.</source>
+        <translation type="unfinished"></translation>
+    </message>
     <message id="qwpup_inf_cur_wp_core_version">
         <source>Current WordPress core version: %1</source>
         <extracomment>Info message, %1 will be replaced by the version string like 6.8.3</extracomment>

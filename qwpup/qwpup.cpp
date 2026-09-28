@@ -6,6 +6,7 @@
 #include "qwpup.h"
 
 #include "compressor.h"
+#include "stats.h"
 #include "utils.h"
 #include "wp.h"
 
@@ -274,8 +275,8 @@ Error QWpUp::start(const QStringList &arguments)
     qDebug() << "Say yes:" << m_sayYes;
 
     if (parser.isSet(statsOpt)) {
-        m_statsFilePath = parser.value(statsOpt);
-        qDebug().noquote() << "Writing statst to:" << m_statsFilePath;
+        m_stats = new Stats(parser.value(statsOpt), this); // NOLINT(cppcoreguidelines-owning-memory)
+        qDebug().noquote() << "Writing statst to:" << m_stats->outputFilePath();
     }
 
     m_dryRun = parser.isSet(dryRunOpt);
@@ -287,6 +288,8 @@ Error QWpUp::start(const QStringList &arguments)
     m_env = QProcessEnvironment::systemEnvironment();
     m_env.insert(u"WP_CLI_CACHE_DIR"_s, m_tempDir->path());
 
+    setConfigStats();
+
     QTimer::singleShot(0, this, &QWpUp::doStart);
 
     return Error::None;
@@ -294,17 +297,47 @@ Error QWpUp::start(const QStringList &arguments)
 
 void QWpUp::doStart()
 {
-    if (m_statsFilePath.isEmpty()) {
+    if (m_stats) {
+        QTimer::singleShot(0, this, &QWpUp::getBlogName);
+    } else {
         QTimer::singleShot(0, this, &QWpUp::getCurrentVersion);
-        return;
     }
-
-    QTimer::singleShot(0, this, &QWpUp::getBlogName);
 }
 
 void QWpUp::getBlogName()
 {
-    QTimer::singleShot(0, this, &QWpUp::getCurrentVersion);
+    auto wp = wpGetOption(u"blogname"_s);
+
+    connect(wp, &WP::succeeded, this, [this](const QByteArray &data) {
+        addStat("blogname"_L1, QString::fromLocal8Bit(data));
+        QTimer::singleShot(0, this, &QWpUp::getSiteUrl);
+    });
+
+    connect(wp, &WP::failed, this, [this](const QString &error) {
+        qCritical().noquote() << error;
+        //% "Failed to get WordPress blogname option value."
+        handleError(qtTrId("qwpup_err_wp_blogname_info_failed"), Error::Internal);
+    });
+
+    wp->start();
+}
+
+void QWpUp::getSiteUrl()
+{
+    auto wp = wpGetOption(u"siteurl"_s);
+
+    connect(wp, &WP::succeeded, this, [this](const QByteArray &data) {
+        addStat("siteurl"_L1, QString::fromLocal8Bit(data));
+        QTimer::singleShot(0, this, &QWpUp::getCurrentVersion);
+    });
+
+    connect(wp, &WP::failed, this, [this](const QString &error) {
+        qCritical().noquote() << error;
+        //% "Failed to get WordPress siteurl option value."
+        handleError(qtTrId("qwpup_err_wp_siteurl_info_failed"), Error::Internal);
+    });
+
+    wp->start();
 }
 
 void QWpUp::getCurrentVersion()
@@ -324,7 +357,6 @@ void QWpUp::getCurrentVersion()
     });
 
     connect(wp, &WP::failed, this, [this](const QString &error) {
-        m_stats.insert("error"_L1, error);
         qCritical().noquote() << error;
         //% "Failed to get version information."
         handleError(qtTrId("qwpup_err_wp_version_info_failed"), Error::Internal);
@@ -343,7 +375,6 @@ void QWpUp::showVersionInfo()
     });
 
     connect(wp, &WP::failed, this, [this](const QString &error) {
-        m_stats.insert("error"_L1, error);
         qCritical().noquote() << error;
         handleError(qtTrId("qwpup_err_wp_version_info_failed"), Error::Internal);
     });
@@ -361,7 +392,6 @@ void QWpUp::listCoreVersions()
     connect(wp, &WP::succeeded, this, [this](const QByteArray &data) {
         const auto array = getJsonArray(data);
         if (!array) {
-            m_stats.insert("error"_L1, array.error());
             handleError(array.error(), Error::Internal);
             return;
         }
@@ -400,7 +430,6 @@ void QWpUp::listCoreVersions()
     });
 
     connect(wp, &WP::failed, this, [this](const QString &error) {
-        m_stats.insert("error"_L1, error);
         qCritical().noquote() << error;
         //% "Failed to check for core updates."
         handleError(qtTrId("qwpup_err_ep_core_up_check_failed"), Error::Internal);
@@ -433,7 +462,8 @@ void QWpUp::updateCore()
         //: %2 will be replaced by the now updated version
         //% "Successfully updated WordPres core from version %1 to version %2."
         qInfo().noquote() << qtTrId("qwpup_infi_update_core_success").arg(m_currentCoreVersion, targetVersion);
-        m_coreUpdated = true;
+        m_coreUpdated        = true;
+        m_updatedCoreVersion = targetVersion;
         QTimer::singleShot(0, this, &QWpUp::checkPluginUpdates);
         return;
     }
@@ -447,12 +477,12 @@ void QWpUp::updateCore()
 
     connect(wp, &WP::succeeded, this, [this, targetVersion]() {
         qInfo().noquote() << qtTrId("qwpup_infi_update_core_success").arg(m_currentCoreVersion, targetVersion);
-        m_coreUpdated = true;
+        m_coreUpdated        = true;
+        m_updatedCoreVersion = targetVersion;
         QTimer::singleShot(0, this, &QWpUp::checkPluginUpdates);
     });
 
     connect(wp, &WP::failed, this, [this](const QString &error) {
-        m_stats.insert("error"_L1, error);
         qCritical().noquote() << error;
         //% "Failed to update WordPress core."
         handleError(qtTrId("qwpup_err_wp_core_update_failed"), Error::Internal);
@@ -929,6 +959,8 @@ void QWpUp::checkCoreTranslations()
             return;
         }
 
+        m_coreLangUps = *array;
+
         QStringList availCoreLangUps;
         availCoreLangUps.reserve(array->size());
         for (const auto &v : *array) {
@@ -998,6 +1030,8 @@ void QWpUp::checkPluginTranslations()
             return;
         }
 
+        m_plugLangUps = *array;
+
         QMap<QString, QStringList> availPlugLangUps;
         for (const auto &v : *array) {
             const auto object = v.toObject();
@@ -1064,16 +1098,18 @@ void QWpUp::checkThemeTranslations()
         const auto array = getJsonArray(data);
         if (!array) {
             qWarning().noquote() << array.error();
-            QTimer::singleShot(0, this, &QWpUp::finish);
+            QTimer::singleShot(0, this, &QWpUp::compressAllAssets);
             return;
         }
 
         if (array->empty()) {
             //% "No theme language updates available."
             qInfo().noquote() << qtTrId("qwpup_info_no_theme_lang_ups-avail");
-            QTimer::singleShot(0, this, &QWpUp::finish);
+            QTimer::singleShot(0, this, &QWpUp::compressAllAssets);
             return;
         }
+
+        m_themeLangUps = *array;
 
         QMap<QString, QStringList> availPlugLangUps;
         for (const auto &v : *array) {
@@ -1099,7 +1135,7 @@ void QWpUp::checkThemeTranslations()
         qWarning().noquote() << error;
         //% "Failed to check for theme translation updates."
         qWarning().noquote() << qtTrId("qwpup_err_theme_lang_check_failed");
-        QTimer::singleShot(0, this, &QWpUp::finish);
+        QTimer::singleShot(0, this, &QWpUp::compressAllAssets);
     });
 
     wp->start();
@@ -1117,11 +1153,11 @@ void QWpUp::updateThemeTranslations()
     connect(wp, &WP::succeeded, this, [this]() {
         //% "Successfully updated theme translations."
         qInfo().noquote() << qtTrId("qwpup_info_upd_theme_lang_success");
-        QTimer::singleShot(0, this, &QWpUp::checkThemeTranslations);
+        QTimer::singleShot(0, this, &QWpUp::compressAllAssets);
     });
 
     connect(wp, &WP::failed, this, [this](const QString &error) {
-        QTimer::singleShot(0, this, &QWpUp::checkThemeTranslations);
+        QTimer::singleShot(0, this, &QWpUp::compressAllAssets);
         qWarning().noquote() << error;
         //% "Failed to update theme translations."
         qWarning().noquote() << qtTrId("qwpup_err_upd_theme_langs_failed");
@@ -1130,17 +1166,17 @@ void QWpUp::updateThemeTranslations()
     wp->start();
 }
 
-void QWpUp::finish()
+void QWpUp::compressAllAssets()
 {
     if (!m_coreUpdated || m_dryRun || m_skipCompression) {
-        QCoreApplication::quit();
+        QTimer::singleShot(0, this, &QWpUp::writeStats);
         return;
     }
 
     const QStringList assets = getAllAssets();
 
     if (assets.empty()) {
-        QCoreApplication::quit();
+        QTimer::singleShot(0, this, &QWpUp::writeStats);
         return;
     }
 
@@ -1155,14 +1191,53 @@ void QWpUp::finish()
         qInfo().noquote() << qtTrId("qwpup_info_compr_all_assets_finished")
                                  .arg(m_locale.toString(
                                      std::chrono::duration_cast<std::chrono::milliseconds>(duration).count()));
-        QCoreApplication::quit();
+        QTimer::singleShot(0, this, &QWpUp::writeStats);
     });
     c->start(assets);
+}
+
+void QWpUp::writeStats()
+{
+    if (!m_stats) {
+        QTimer::singleShot(0, this, &QWpUp::finish);
+        return;
+    }
+
+    m_stats->addStat("core"_L1,
+                     QJsonObject({{"version"_L1, m_currentCoreVersion},
+                                  {"update_version"_L1, m_updatedCoreVersion},
+                                  {"updated"_L1, m_coreUpdated},
+                                  {"available_major_version"_L1, m_availMajCoreVersion},
+                                  {"available_minor_version"_L1, m_availMinCoreVersion},
+                                  {"language_updates"_L1, m_coreLangUps}}));
+
+    m_stats->addStat("plugins"_L1,
+                     QJsonObject({{"skipped"_L1, m_skippedPlugins},
+                                  {"failed"_L1, m_failedPlugins},
+                                  {"updated"_L1, m_updatedPlugins},
+                                  {"language_updates"_L1, m_plugLangUps}}));
+
+    m_stats->addStat("themes"_L1,
+                     QJsonObject({{"skipped"_L1, m_skippedThemes},
+                                  {"failed"_L1, m_failedThemes},
+                                  {"updated"_L1, m_updatedThemes},
+                                  {"language_updates"_L1, m_themeLangUps}}));
+
+    m_stats->write();
+
+    QTimer::singleShot(0, this, &QWpUp::finish);
+}
+
+void QWpUp::finish()
+{
+    QCoreApplication::quit();
 }
 
 void QWpUp::handleError(const QString &msg, Error exitCode)
 {
     qCritical().noquote() << msg;
+
+    addStat("error"_L1, msg);
 
     QCoreApplication::exit(static_cast<int>(exitCode));
 }
@@ -1324,25 +1399,24 @@ std::expected<QJsonArray, QString> QWpUp::getJsonArray(const QByteArray &ba) con
     return json.array();
 }
 
-void QWpUp::setCoreStat(QLatin1StringView key, const QJsonValue &val)
+void QWpUp::addStat(QLatin1StringView key, const QJsonValue &val)
 {
-    auto o = m_stats.value("core"_L1).toObject();
-    o.insert(key, val);
-    m_stats.insert("core"_L1, o);
+    if (m_stats) {
+        m_stats->addStat(key, val);
+    }
 }
 
-void QWpUp::addPuginStat(QLatin1StringView key, const QJsonObject &plugin)
+void QWpUp::setConfigStats()
 {
-    auto a = m_stats.value("plugins"_L1).toArray();
-    a.append(plugin);
-    m_stats.insert("plugins"_L1, a);
-}
-
-void QWpUp::addThemeStat(QLatin1StringView key, const QJsonObject &theme)
-{
-    auto a = m_stats.value("themes"_L1).toArray();
-    a.append(theme);
-    m_stats.insert("themes"_L1, a);
+    if (m_stats) {
+        m_stats->addStat("configuration"_L1,
+                         QJsonObject({{"wordpress_directory"_L1, m_wpDir.absolutePath()},
+                                      {"skip_compression"_L1, m_skipCompression},
+                                      {"update_core_major"_L1, m_wpUpMajor},
+                                      {"say_yes"_L1, m_sayYes},
+                                      {"dry_run"_L1, m_dryRun},
+                                      {"wp_executable_path"_L1, m_wpPath}}));
+    }
 }
 
 #include "moc_qwpup.cpp"

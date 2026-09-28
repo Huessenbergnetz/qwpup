@@ -21,6 +21,7 @@
 
 class QProcess;
 class QTemporaryDir;
+class Stats;
 class WP;
 
 class QWpUp : public QObject
@@ -34,6 +35,7 @@ public:
 private slots:
     void doStart();
     void getBlogName();
+    void getSiteUrl();
     void getCurrentVersion();
     void showVersionInfo();
     void listCoreVersions();
@@ -48,6 +50,8 @@ private slots:
     void updatePluginTranslations();
     void checkThemeTranslations();
     void updateThemeTranslations();
+    void compressAllAssets();
+    void writeStats();
     void finish();
 
 private:
@@ -62,24 +66,26 @@ private:
     [[nodiscard]] QStringList getAllAssets() const;
     [[nodiscard]] std::expected<QJsonArray, QString> getJsonArray(const QByteArray &ba) const;
 
-    void setCoreStat(QLatin1StringView key, const QJsonValue &val);
-    void addPuginStat(QLatin1StringView key, const QJsonObject &val);
-    void addThemeStat(QLatin1StringView key, const QJsonObject &theme);
+    void addStat(QLatin1StringView key, const QJsonValue &val);
+    void setConfigStats();
 
     QString m_wpPath;
     QString m_currentCoreVersion;
     QString m_availMajCoreVersion;
     QString m_availMinCoreVersion;
-    QString m_statsFilePath;
+    QString m_updatedCoreVersion;
     QQueue<QJsonObject> m_pluginsToUpdate;
     QQueue<QJsonObject> m_themesToUpdate;
+    Stats *m_stats{nullptr};
     QJsonArray m_skippedPlugins;
     QJsonArray m_updatedPlugins;
     QJsonArray m_failedPlugins;
     QJsonArray m_skippedThemes;
     QJsonArray m_updatedThemes;
     QJsonArray m_failedThemes;
-    QJsonObject m_stats;
+    QJsonArray m_coreLangUps;
+    QJsonArray m_plugLangUps;
+    QJsonArray m_themeLangUps;
     QLocale m_locale;
     QDir m_wpDir;
     std::unique_ptr<QTemporaryDir> m_tempDir;

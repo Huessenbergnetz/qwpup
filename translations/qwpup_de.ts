@@ -102,6 +102,14 @@
         <extracomment>Error message, %1 will be replaced by the error message</extracomment>
         <translation>Konnte kein temporäres Verzeichznis erstellen: %1</translation>
     </message>
+    <message id="qwpup_err_wp_blogname_info_failed">
+        <source>Failed to get WordPress blogname option value.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message id="qwpup_err_wp_siteurl_info_failed">
+        <source>Failed to get WordPress siteurl option value.</source>
+        <translation type="unfinished"></translation>
+    </message>
     <message id="qwpup_inf_cur_wp_core_version">
         <source>Current WordPress core version: %1</source>
         <extracomment>Info message, %1 will be replaced by the version string like 6.8.3</extracomment>
@@ -228,7 +236,7 @@
     <message id="qwpup_dbg_avail_plug_up">
         <source>Available plugin update: %1 %2 =&gt; %3</source>
         <extracomment>%1 will be replaced by the plugin name, %2 by the current version, %3 by the udpate version</extracomment>
-        <translation>Verfügbare Plugin-Aktualisierunge: %1 %2 =&gt; %3</translation>
+        <translation>Verfügbare Plugin-Aktualisierung: %1 %2 =&gt; %3</translation>
     </message>
     <message id="qwpup_info_avail_plug_ups">
         <source>Available plugin updates: %1.</source>
