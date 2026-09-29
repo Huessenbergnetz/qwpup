@@ -68,3 +68,4 @@ if (ENABLE_MAINTAINER_CFLAGS)
 endif (ENABLE_MAINTAINER_CFLAGS)
 
 add_subdirectory(qwpup)
+add_subdirectory(master)

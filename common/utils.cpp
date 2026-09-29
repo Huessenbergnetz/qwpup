@@ -56,7 +56,7 @@ void Utils::setLogLevel(QtMsgType type)
     }
 }
 
-VersionPart Utils::versionPartFromString(const QString &str)
+VersionPart Utils::versionPartFromString(const QString &str, VersionPart defVal)
 {
     if (str.compare("major"_L1) == 0) {
         return VersionPart::Major;
@@ -66,5 +66,5 @@ VersionPart Utils::versionPartFromString(const QString &str)
         return VersionPart::Patch;
     }
 
-    return VersionPart::Invalid;
+    return defVal;
 }

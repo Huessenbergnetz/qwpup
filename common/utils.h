@@ -21,7 +21,7 @@ inline void setLogLevel(const QString &level)
     setLogLevel(logLevel(level));
 }
 
-VersionPart versionPartFromString(const QString &str);
+VersionPart versionPartFromString(const QString &str, VersionPart defVal = VersionPart::Invalid);
 
 } // namespace Utils
 
