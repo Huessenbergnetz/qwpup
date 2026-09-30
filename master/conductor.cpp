@@ -47,20 +47,15 @@ Error Conductor::start(const QStringList &args)
                                    confPathDef);
     parser.addOption(confPathOpt);
 
-    const QStringList logLevels({u"debug"_s, u"info"_s, u"warn"_s, u"crit"_s});
-#ifdef QT_DEBUG
-    const QString defLl = u"debug"_s;
-#else
-    const QString defLl = u"info"_s;
-#endif
-    QCommandLineOption logLevelOpt(QStringList({u"l"_s, u"log-level"_s}),
-                                   //: Option description in the CLI help
-                                   //% "Log level and higher for that messages are shown. Available: %1. Default: %2"
-                                   qtTrId("qwpup_cli_opt_log_level").arg(m_locale.createSeparatedList(logLevels), defLl),
-                                   //: Option value name in the CLI help for the log level
-                                   //% "level"
-                                   qtTrId("qwpup_cli_opt_log_level_val"),
-                                   defLl);
+    QCommandLineOption logLevelOpt(
+        QStringList({u"l"_s, u"log-level"_s}),
+        //: Option description in the CLI help
+        //% "Log level and higher for that messages are shown. Available: %1. Default: %2"
+        qtTrId("qwpup_cli_opt_log_level").arg(m_locale.createSeparatedList(Utils::logLevels()), Utils::defaultLogLevel()),
+        //: Option value name in the CLI help for the log level
+        //% "level"
+        qtTrId("qwpup_cli_opt_log_level_val"),
+        Utils::defaultLogLevel());
     parser.addOption(logLevelOpt);
 
     parser.process(args);
@@ -73,7 +68,7 @@ Error Conductor::start(const QStringList &args)
 
     if (parser.isSet(logLevelOpt)) {
         const QString logLevel = parser.value(logLevelOpt).toLower();
-        if (!logLevels.contains(logLevel)) {
+        if (!Utils::isLogLevelValid(logLevel)) {
             //: Error message
             //% "Invalid log level."
             qCritical().noquote() << qtTrId("qwpup_err_inv_ll");
@@ -180,10 +175,8 @@ Error Conductor::readConfiguration(const QString &configFilePath)
     m_mailUrl     = QUrl(config.value("mail_server"_L1).toString());
     m_mailEnabled = config.value("mail_enabled"_L1).toBool();
     m_mailFrom    = config.value("mail_from"_L1).toString();
-
-    if (m_mailEnabled) {
-        const QStringList allowedSchemes = {u"smtp"_s, u"smtps"_s};
-    }
+    m_logLevel    = Utils::logLevel(config.value("log_level"_L1).toString(Utils::defaultLogLevel()));
+    Utils::setLogLevel(m_logLevel);
 
     return Error::None;
 }

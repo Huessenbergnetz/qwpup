@@ -18,6 +18,21 @@
         <extracomment>Option value name in the cli help for file and directory paths</extracomment>
         <translation type="unfinished"></translation>
     </message>
+    <message id="qwpup_cli_opt_log_level">
+        <source>Log level and higher for that messages are shown. Available: %1. Default: %2</source>
+        <extracomment>Option description in the CLI help</extracomment>
+        <translation type="unfinished"></translation>
+    </message>
+    <message id="qwpup_cli_opt_log_level_val">
+        <source>level</source>
+        <extracomment>Option value name in the CLI help for the log level</extracomment>
+        <translation type="unfinished"></translation>
+    </message>
+    <message id="qwpup_err_inv_ll">
+        <source>Invalid log level.</source>
+        <extracomment>Error message</extracomment>
+        <translation type="unfinished"></translation>
+    </message>
     <message id="qwpup_err_master_conf_not_found">
         <source>Can not find master configuration file at %1</source>
         <extracomment>%1 will be replaced by the file path</extracomment>
@@ -33,8 +48,21 @@
         <extracomment>%1 will be replaced by the file path, %2 by the error message</extracomment>
         <translation type="unfinished"></translation>
     </message>
+    <message id="qwpup_err_empty_config_file">
+        <source>Empty configuration file at %1</source>
+        <translation type="unfinished"></translation>
+    </message>
     <message id="qwpup_err_empty_config">
-        <source>Empty configuration file at %1.</source>
+        <source>Configuration is empty and does not contain any data.</source>
+        <oldsource>Empty configuration file at %1.</oldsource>
+        <translation type="unfinished"></translation>
+    </message>
+    <message id="qwpup_err_config_empty_sites">
+        <source>No sites configured. Please add sites to update to your configuration.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message id="qwpup_warn_config_emtpy_site">
+        <source>Empty entry in “sites“ configuration.</source>
         <translation type="unfinished"></translation>
     </message>
     <message id="qwpup_err_config_json_parse_failed">

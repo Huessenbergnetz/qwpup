@@ -10,13 +10,13 @@
 
 using namespace Qt::Literals::StringLiterals;
 
-QtMsgType Utils::logLevel(const QString &str)
+QtMsgType Utils::logLevel(QStringView str)
 {
     if (str.compare("info"_L1) == 0) {
         return QtInfoMsg;
-    } else if (str.compare("warn"_L1) == 0) {
+    } else if (str.compare("warning"_L1) == 0) {
         return QtWarningMsg;
-    } else if (str.compare("crit"_L1) == 0) {
+    } else if (str.compare("critical"_L1) == 0) {
         return QtCriticalMsg;
     }
 

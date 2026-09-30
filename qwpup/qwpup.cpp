@@ -50,20 +50,15 @@ Error QWpUp::start(const QStringList &arguments)
     parser.addHelpOption();
     parser.addVersionOption();
 
-    const QStringList logLevels({u"debug"_s, u"info"_s, u"warn"_s, u"crit"_s});
-#ifdef QT_DEBUG
-    const QString defLl = u"debug"_s;
-#else
-    const QString defLl = u"info"_s;
-#endif
-    QCommandLineOption logLevelOpt(QStringList({u"l"_s, u"log-level"_s}),
-                                   //: Option description in the CLI help
-                                   //% "Log level and higher for that messages are shown. Available: %1. Default: %2"
-                                   qtTrId("qwpup_cli_opt_log_level").arg(m_locale.createSeparatedList(logLevels), defLl),
-                                   //: Option value name in the CLI help for the log level
-                                   //% "level"
-                                   qtTrId("qwpup_cli_opt_log_level_val"),
-                                   defLl);
+    QCommandLineOption logLevelOpt(
+        QStringList({u"l"_s, u"log-level"_s}),
+        //: Option description in the CLI help
+        //% "Log level and higher for that messages are shown. Available: %1. Default: %2"
+        qtTrId("qwpup_cli_opt_log_level").arg(m_locale.createSeparatedList(Utils::logLevels()), Utils::defaultLogLevel()),
+        //: Option value name in the CLI help for the log level
+        //% "level"
+        qtTrId("qwpup_cli_opt_log_level_val"),
+        Utils::defaultLogLevel());
     parser.addOption(logLevelOpt);
 
     QCommandLineOption skipCompOpt(QStringList({u"s"_s, u"skip-compression"_s}),
@@ -138,7 +133,7 @@ Error QWpUp::start(const QStringList &arguments)
     // Set the log level
 
     const QString logLevel = parser.value(logLevelOpt).toLower();
-    if (!logLevels.contains(logLevel)) {
+    if (!Utils::isLogLevelValid(logLevel)) {
         //: Error message
         //% "Invalid log level."
         qCritical().noquote() << qtTrId("qwpup_err_inv_ll");
