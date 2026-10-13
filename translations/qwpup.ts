@@ -83,11 +83,6 @@
         <extracomment>Error message</extracomment>
         <translation type="unfinished"></translation>
     </message>
-    <message id="qwpup_err_user_unknown">
-        <source>Failed to get current user.</source>
-        <oldsource>Failed to get current user</oldsource>
-        <translation type="unfinished"></translation>
-    </message>
     <message id="qwpup_err_user_root">
         <source>Do not run this command as super user (root).</source>
         <oldsource>Do not run this command as super user (root)</oldsource>
