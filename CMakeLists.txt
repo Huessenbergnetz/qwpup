@@ -37,6 +37,7 @@ option(ENABLE_MAINTAINER_CFLAGS "Enable maintainer CFlags" OFF)
 
 set(QWPUP_I18NDIR "${CMAKE_INSTALL_DATADIR}/${PROJECT_NAME}/translations" CACHE PATH "Directory to install translations")
 set(QWPUP_CONFDIR "${CMAKE_INSTALL_SYSCONFDIR}" CACHE PATH "Configuration file directory")
+set(QWPUP_BINDIR "${CMAKE_INSTALL_BINDIR}" CACHE PATH "Installation directory for qwpup binary")
 
 GNUInstallDirs_get_absolute_install_dir(QWPUP_I18N_FULL_DIR QWPUP_I18NDIR DATADIR)
 GNUInstallDirs_get_absolute_install_dir(QWPUP_CONF_FULL_DIR QWPUP_CONFDIR SYSCONFDIR)

@@ -28,9 +28,70 @@
         <extracomment>Option value name in the CLI help for the log level</extracomment>
         <translation type="unfinished"></translation>
     </message>
+    <message id="qwpup_cli_opt_dry_run">
+        <source>Do a dry run without performing real actions.</source>
+        <extracomment>Option description in the CLI help</extracomment>
+        <translation type="unfinished"></translation>
+    </message>
     <message id="qwpup_err_inv_ll">
         <source>Invalid log level.</source>
         <extracomment>Error message</extracomment>
+        <translation type="unfinished"></translation>
+    </message>
+    <message id="qwpup_info_start_site_update">
+        <source>Starting update.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message id="qwpup_warn_site_empty_name">
+        <source>Empty site name. Set a site name in your configuration for better logging.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message id="qwpup_warn_site_path_empty">
+        <source>Update failed: empty path to WordPress directory.</source>
+        <oldsource>Can not update site “%1”: empty path to WordPress directory.</oldsource>
+        <translation type="unfinished"></translation>
+    </message>
+    <message id="qwpup_warn_site_path_not_exists">
+        <source>Update failed: WordPress directory path “%1” does not exist.</source>
+        <oldsource>Can not update site “%1”: path “%2” does not exist.</oldsource>
+        <translation type="unfinished"></translation>
+    </message>
+    <message id="qwpup_warn_site_invalid_username">
+        <source>Unknown user set. Please check your configuration. Will try to get user from wp-config.php file owner.</source>
+        <oldsource>Unknown user set for site “%1”. Please check your configuration. Will try to get user from wp-config.php file owner.</oldsource>
+        <translation type="unfinished"></translation>
+    </message>
+    <message id="qwpup_warn_site_no_uid">
+        <source>Update failed: Can not obtain user id. Please specify user in site configuration.</source>
+        <oldsource>Can not update site “%1“: Can not obtain user id. Please specify user in site configuration.</oldsource>
+        <translation type="unfinished"></translation>
+    </message>
+    <message id="qwpup_warn_site_invalid_groupname">
+        <source>Unknown group set. Please check your configuration. Will try to get group from wp-config.php file group.</source>
+        <oldsource>Unknown group set for site “%1”. Please check your configuration. Will try to get group from wp-config.php file group.</oldsource>
+        <translation type="unfinished"></translation>
+    </message>
+    <message id="qwpup_warn_site_no_gid">
+        <source>Update failed: Can not obtain group id. Please specify group in site configuration.</source>
+        <oldsource>Can not update site “%1“: Can not obtain group id. Please specify group in site configuration.</oldsource>
+        <translation type="unfinished"></translation>
+    </message>
+    <message id="qwpup_warn_site_no_stat_file">
+        <source>Update failed: Failed to create temporary file for statistics.</source>
+        <oldsource>Can not update site “%1”: Failed to create temporary file for statistics.</oldsource>
+        <translation type="unfinished"></translation>
+    </message>
+    <message id="qwpup_warn_update_failed">
+        <source>Update failed.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message id="qwpup_info_update_success">
+        <source>Update successful.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message id="qwpup_warn_update_failed_process">
+        <source>Update failed: %1</source>
+        <extracomment>%1 will be replaced by the error string returned by QProcess</extracomment>
         <translation type="unfinished"></translation>
     </message>
     <message id="qwpup_err_master_conf_not_found">
@@ -63,6 +124,13 @@
     </message>
     <message id="qwpup_warn_config_emtpy_site">
         <source>Empty entry in “sites“ configuration.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message id="qwpup_err_wpconfig_not_found">
+        <source>Can not find WordPress configurtion file at “%1”.</source>
+        <oldsource>Can not find WordPress configurtion file at “%1”.
+</oldsource>
+        <extracomment>%1 will be replaced by the full path to the file</extracomment>
         <translation type="unfinished"></translation>
     </message>
     <message id="qwpup_err_config_json_parse_failed">

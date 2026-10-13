@@ -30,7 +30,7 @@ target_link_libraries(qwpup
         PkgConfig::Brotli
 )
 
-install(TARGETS qwpup DESTINATION ${CMAKE_INSTALL_BINDIR})
+install(TARGETS qwpup DESTINATION ${QWPUP_BINDIR})
 
 set(qwpup_TS_FILES
     ${CMAKE_SOURCE_DIR}/translations/qwpup.ts

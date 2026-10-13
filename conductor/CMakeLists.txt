@@ -18,6 +18,13 @@ target_include_directories(qwpup-master
         ${CMAKE_SOURCE_DIR}/common
 )
 
+GNUInstallDirs_get_absolute_install_dir(QWPUP_BIN_FULL_DIR QWPUP_BINDIR BINDIR)
+
+target_compile_definitions(qwpup-master
+    PRIVATE
+        QWPUP_BINPATH="${QWPUP_BIN_FULL_DIR}/qwpup"
+)
+
 install(TARGETS qwpup-master DESTINATION ${CMAKE_INSTALL_BINDIR})
 
 set(qwpup-master_TS_FILES
