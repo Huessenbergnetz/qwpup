@@ -66,6 +66,12 @@ inline void setLogLevel(QStringView type)
  */
 VersionPart versionPartFromString(const QString &str, VersionPart defVal = VersionPart::Invalid);
 
+/**
+ * Returns the VersionPart \a part as string. If \a part is not valid,
+ * the default value \a defVal will be returned.
+ */
+QString versionPartToString(VersionPart part, const QString &defVal = QStringLiteral("major"));
+
 } // namespace Utils
 
 #endif // QWPUP_UTILS_H

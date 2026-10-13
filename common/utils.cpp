@@ -68,3 +68,17 @@ VersionPart Utils::versionPartFromString(const QString &str, VersionPart defVal)
 
     return defVal;
 }
+
+QString Utils::versionPartToString(VersionPart part, const QString &defVal)
+{
+    switch (part) {
+    case VersionPart::Major:
+        return u"major"_s;
+    case VersionPart::Minor:
+        return u"minor"_s;
+    case VersionPart::Patch:
+        return u"patch"_s;
+    default:
+        return defVal;
+    }
+}
