@@ -25,10 +25,10 @@ int main(int argc, char *argv[])
         auto trans = new QTranslator(&app); // NOLINT(cppcoreguidelines-owning-memory)
         if (Q_LIKELY(trans->load(locale, QCoreApplication::applicationName(), u"_"_s, QStringLiteral(QWPUP_I18NDIR)))) {
             if (Q_UNLIKELY(!QCoreApplication::installTranslator(trans))) {
-                qWarning() << "Failed to install translator for" << locale;
+                qDebug() << "Failed to install translator for" << locale;
             }
         } else {
-            qWarning() << "Failed to load translations for" << locale << "from" << QWPUP_I18NDIR;
+            qDebug() << "Failed to load translations for" << locale << "from" << QWPUP_I18NDIR;
         }
     }
 

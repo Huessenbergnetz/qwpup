@@ -9,7 +9,8 @@
         <translation type="unfinished"></translation>
     </message>
     <message id="qwpup_cli_opt_log_level">
-        <source>Log level and higher for that messages are shown. Available: %1. Default: %2</source>
+        <source>Log level and higher for that messages are shown. Available: %1. Default: %2.</source>
+        <oldsource>Log level and higher for that messages are shown. Available: %1. Default: %2</oldsource>
         <extracomment>Option description in the CLI help</extracomment>
         <translation type="unfinished"></translation>
     </message>
@@ -57,6 +58,18 @@
     <message id="qwpup_cli_opt_val_path">
         <source>path</source>
         <extracomment>Option value name in the cli help for file and directory paths</extracomment>
+        <translation type="unfinished"></translation>
+    </message>
+    <message id="qwpup_cli_opt_log_format">
+        <source>Format for generating log messages. Available: %1, Default: %2.</source>
+        <oldsource>Format for generating log messages. Available: %1, Default: %2.
+</oldsource>
+        <extracomment>Option description in the CLI help</extracomment>
+        <translation type="unfinished"></translation>
+    </message>
+    <message id="qwpup_cli_opt_log_format_val">
+        <source>format</source>
+        <extracomment>Option value name in the CLI help for log format</extracomment>
         <translation type="unfinished"></translation>
     </message>
     <message id="qwpup_cli_opt_wp_dir">

@@ -61,6 +61,22 @@ inline void setLogLevel(QStringView type)
 }
 
 /**
+ * Returns the default log format.
+ */
+inline constexpr QString defaultLogFormat()
+{
+    return QStringLiteral("plaintext");
+}
+
+/**
+ * Return a list of supported logging formats.
+ */
+inline constexpr QStringList logFormats()
+{
+    return {QStringLiteral("plaintext"), QStringLiteral("json")};
+}
+
+/**
  * Returns the VersionPart based on the input string \a str. If \a str is not
  * a valid VersionPart, the default \a defVal will be returned.
  */

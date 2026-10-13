@@ -53,13 +53,24 @@ Error QWpUp::start(const QStringList &arguments)
     QCommandLineOption logLevelOpt(
         QStringList({u"l"_s, u"log-level"_s}),
         //: Option description in the CLI help
-        //% "Log level and higher for that messages are shown. Available: %1. Default: %2"
+        //% "Log level and higher for that messages are shown. Available: %1. Default: %2."
         qtTrId("qwpup_cli_opt_log_level").arg(m_locale.createSeparatedList(Utils::logLevels()), Utils::defaultLogLevel()),
         //: Option value name in the CLI help for the log level
         //% "level"
         qtTrId("qwpup_cli_opt_log_level_val"),
         Utils::defaultLogLevel());
     parser.addOption(logLevelOpt);
+
+    QCommandLineOption logFormatOpt(
+        u"log-format"_s,
+        //: Option description in the CLI help
+        //% "Format for generating log messages. Available: %1, Default: %2."
+        qtTrId("qwpup_cli_opt_log_format").arg(m_locale.createSeparatedList(Utils::logFormats()), Utils::defaultLogFormat()),
+        //: Option value name in the CLI help for log format
+        //% "format"
+        qtTrId("qwpup_cli_opt_log_format_val"),
+        Utils::defaultLogFormat());
+    parser.addOption(logFormatOpt);
 
     QCommandLineOption skipCompOpt(QStringList({u"s"_s, u"skip-compression"_s}),
                                    //: Option description in the CLI help
@@ -130,6 +141,12 @@ Error QWpUp::start(const QStringList &arguments)
 
     parser.process(arguments);
 
+    // Set log message pattern
+    const auto logFormat = parser.value(logFormatOpt).toLower();
+    if (logFormat == "json"_L1) {
+        qSetMessagePattern(u"{\"type\": \"%{type}\", \"message\": \"%{message}\"}"_s);
+    }
+
     // Set the log level
 
     const QString logLevel = parser.value(logLevelOpt).toLower();
@@ -160,7 +177,7 @@ Error QWpUp::start(const QStringList &arguments)
         return Error::Security;
     }
 
-    qDebug() << "Running as user" << user;
+    qDebug().noquote() << "Running as user" << user;
 
     // Set WordPress directory
 
@@ -187,7 +204,7 @@ Error QWpUp::start(const QStringList &arguments)
         return Error::File;
     }
 
-    qDebug() << "WordPress directory:" << m_wpDir.absolutePath();
+    qDebug().noquote() << "WordPress directory:" << m_wpDir.absolutePath();
 
     // Check if current user is owner of wp-config.php
 
@@ -223,7 +240,7 @@ Error QWpUp::start(const QStringList &arguments)
         qCritical().noquote() << qtTrId("qwpup_err_wp_exe_not_found").arg(u"--wp-cli"_s);
         return Error::Config;
     }
-    qDebug() << "Found WP CLI executable at" << m_wpPath;
+    qDebug().noquote() << "Found WP CLI:" << m_wpPath;
 
     m_skipCompression = parser.isSet(skipCompOpt);
 
@@ -231,7 +248,7 @@ Error QWpUp::start(const QStringList &arguments)
 
     m_wpUpMajor = parser.isSet(upWpMajOpt);
 
-    qDebug() << "Update WordPress major version:" << m_wpUpMajor;
+    qDebug().noquote() << "Update WordPress major version:" << m_wpUpMajor;
 
     const QString upPlugsVerStr = parser.value(upPlugsVerOpt).toLower();
     m_plugsUpVersion            = Utils::versionPartFromString(upPlugsVerStr);
@@ -243,7 +260,7 @@ Error QWpUp::start(const QStringList &arguments)
         return Error::Config;
     }
 
-    qDebug() << "Update plugins version:" << upPlugsVerStr;
+    qDebug().noquote() << "Update plugins version:" << upPlugsVerStr;
 
     const QString upThemesVerStr = parser.value(upThemVerOpt).toLower();
     m_themesUpVersion            = Utils::versionPartFromString(upThemesVerStr);
@@ -253,7 +270,7 @@ Error QWpUp::start(const QStringList &arguments)
         return Error::Config;
     }
 
-    qDebug() << "Update themes version:" << upThemesVerStr;
+    qDebug().noquote() << "Update themes version:" << upThemesVerStr;
 
     m_tempDir = std::make_unique<QTemporaryDir>();
     if (!m_tempDir->isValid()) {
@@ -263,7 +280,7 @@ Error QWpUp::start(const QStringList &arguments)
         return Error::File;
     }
 
-    qDebug() << "Temporary directory:" << m_tempDir->path();
+    qDebug().noquote() << "Temporary directory:" << m_tempDir->path();
 
     m_sayYes = parser.isSet(yesOpt);
 
