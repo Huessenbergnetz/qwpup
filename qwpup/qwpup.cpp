@@ -11,6 +11,8 @@
 #include "wp.h"
 
 #include <chrono>
+#include <pwd.h>
+#include <unistd.h>
 
 #include <QCommandLineOption>
 #include <QCommandLineParser>
@@ -161,23 +163,18 @@ Error QWpUp::start(const QStringList &arguments)
 
     // Check if we are not root
 
-    QString user = QString::fromLocal8Bit(qgetenv("USER"));
-    if (user.isEmpty()) {
-        user = QString::fromLocal8Bit(qgetenv("USERNAME"));
-    }
-    if (user.isEmpty()) {
-        //% "Failed to get current user."
-        qCritical().noquote() << qtTrId("qwpup_err_user_unknown");
-        return Error::Internal;
-    }
-
-    if (user.compare("root"_L1, Qt::CaseInsensitive) == 0) {
+    if (geteuid() == 0) {
         //% "Do not run this command as super user (root)."
         qCritical().noquote() << qtTrId("qwpup_err_user_root");
         return Error::Security;
     }
 
-    qDebug().noquote() << "Running as user" << user;
+    if (m_logLevel == QtDebugMsg) {
+        const auto passwd = getpwuid(geteuid());
+        if (passwd) {
+            qDebug().noquote() << "Running as user" << passwd->pw_name;
+        }
+    }
 
     // Set WordPress directory
 
@@ -208,7 +205,7 @@ Error QWpUp::start(const QStringList &arguments)
 
     // Check if current user is owner of wp-config.php
 
-    if (wpConfigFi.owner() != user) {
+    if (wpConfigFi.ownerId() != geteuid()) {
         //% "Current user it not the owner of the wp-config.php file. Please run the "
         //% "command as owner of the WordPress files."
         qCritical().noquote() << qtTrId("qwpup_err_wp_config_owner_mismatch");
