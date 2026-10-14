@@ -449,7 +449,7 @@ void QWpUp::listCoreVersions()
 
 void QWpUp::updateCore()
 {
-    const QString targetVersion = m_wpUpMajor ? m_availMajCoreVersion : m_availMinCoreVersion;
+    const QString targetVersion = m_wpUpMajor && m_majCoreUpAvail ? m_availMajCoreVersion : m_availMinCoreVersion;
 
     if (!m_sayYes) {
         //: %1 will be replaced by the current version number, %2 by the
