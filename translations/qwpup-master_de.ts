@@ -39,7 +39,8 @@
         <translation type="unfinished"></translation>
     </message>
     <message id="qwpup_info_start_site_update">
-        <source>Starting update.</source>
+        <source>Starting update at %1.</source>
+        <oldsource>Starting update.</oldsource>
         <translation type="unfinished"></translation>
     </message>
     <message id="qwpup_warn_site_empty_name">

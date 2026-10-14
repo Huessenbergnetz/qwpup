@@ -116,8 +116,8 @@ void Conductor::updateSite()
 
     const QString logName = site.name.isEmpty() ? u"unknown-site:"_s : site.name + ':'_L1;
 
-    //% "Starting update."
-    qInfo().noquote() << logName << qtTrId("qwpup_info_start_site_update");
+    //% "Starting update at %1."
+    qInfo().noquote() << logName << qtTrId("qwpup_info_start_site_update").arg(site.path);
 
     if (site.name.isEmpty()) {
         //% "Empty site name. Set a site name in your configuration for better logging."
@@ -317,6 +317,8 @@ void Conductor::updateSite()
             }
         }
     });
+
+    qDebug().noquote() << "Running" << m_qwpupPath << args.join(" "_L1);
 
     qwpup->start();
 }
