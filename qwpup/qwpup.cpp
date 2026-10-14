@@ -429,7 +429,7 @@ void QWpUp::listCoreVersions()
             }
         }
 
-        if ((!m_wpUpMajor && m_minCoreUpAvail) || (m_wpUpMajor && m_majCoreUpAvail)) {
+        if ((!m_wpUpMajor && m_minCoreUpAvail) || m_wpUpMajor) {
             QTimer::singleShot(0, this, &QWpUp::updateCore);
         } else {
             //% "Skipping major core update."
